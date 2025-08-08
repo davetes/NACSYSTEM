@@ -48,10 +48,11 @@ With scripting in Python and Bash, the system automates key control mechanisms a
 - IoT device access enforcement
 - Public Wi-Fi network segmentation
 
- ## 👥 Group Members-Mikiyas Sisay Desta
-                  -Tesfahun Kere
-                  -Sebrina Mohammed
-                  -Mekdim Zelalem
+ ## 👥 Group Members
+                  ## -Mikiyas Sisay Desta
+                  ## -Tesfahun Kere
+                  ## -Sebrina Mohammed
+                  ## -Mekdim Zelalem
           
 
 
