@@ -42,13 +42,13 @@ With scripting in Python and Bash, the system automates key control mechanisms a
 - `Bash scripting`
 - `Wireshark` / `tcpdump` (for packet inspection)
 
- 🧪 Use Cases
+### 🧪 Use Cases
 - Corporate LAN access control
 - University campus networks
 - IoT device access enforcement
 - Public Wi-Fi network segmentation
 
- 👥 Group Members-Mikiyas Sisay Desta
+ ## 👥 Group Members-Mikiyas Sisay Desta
                   -Tesfahun Kere
                   -Sebrina Mohammed
                   -Mekdim Zelalem
