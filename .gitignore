@@ -1,7 +1,28 @@
-node_modules/
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+
+# Environment variables
 .env
+
+# Database and logs
 data/*.db
 logs/*
+
+# Node.js/React
+node_modules/
 frontend/build/
+frontend/.env
+
+# Editor and OS files
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/

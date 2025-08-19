@@ -1,41 +1,86 @@
-from flask import Flask, jsonify
-from flask_cors import CORS
+from flask import Flask, request, jsonify
 import os
+from dotenv import load_dotenv
+import sqlite3
 
-import nac_controller as controller
+load_dotenv()
+app = Flask(__name__)
+API_KEY = os.getenv('API_KEY')
 
+def get_db_connection():
+    return sqlite3.connect('devices.db')
 
-def create_app() -> Flask:
-	app = Flask(__name__)
-	CORS(app)
+@app.before_request
+def check_api_key():
+    if request.path.startswith('/'):
+        api_key = request.headers.get('X-API-KEY')
+        if api_key != API_KEY:
+            return jsonify({'error': 'Unauthorized'}), 401
 
-	@ app.route("/devices", methods=["GET"])
-	def get_devices():
-		devices = controller.list_authorized_devices()
-		return jsonify(devices), 200
+@app.route('/devices', methods=['GET'])
+def get_devices():
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT mac, username, authorized, vlan FROM devices')
+        devices = [{'mac': row[0], 'username': row[1], 'authorized': row[2], 'vlan': row[3]} for row in cursor.fetchall()]
+    return jsonify(devices)
 
-	@ app.route("/logs", methods=["GET"])
-	def get_logs():
-		log_file_path = os.path.join("logs", "nac.log")
-		if not os.path.exists(log_file_path):
-			return jsonify({"logs": []}), 200
-		with open(log_file_path, "r", encoding="utf-8") as log_file:
-			lines = [line.rstrip("\n") for line in log_file.readlines()]
-		return jsonify({"logs": lines}), 200
+@app.route('/validate/<mac>', methods=['GET'])
+def validate_mac(mac):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT authorized FROM devices WHERE mac = ?', (mac,))
+        result = cursor.fetchone()
+    return jsonify({'mac': mac, 'authorized': bool(result[0]) if result else False, 'vlan': 10 if result else None})
 
-	@ app.route("/validate/<mac>", methods=["GET"])
-	def validate_mac(mac: str):
-		try:
-			# Use the new API that returns username and VLAN
-			result = controller.validate_and_assign(mac)
-			return jsonify(result), 200
-		except ValueError as exc:
-			return jsonify({"error": str(exc)}), 400
+@app.route('/logs', methods=['GET'])
+def get_logs():
+    with open('../logs/nac.log', 'r') as f:
+        logs = f.readlines()
+    return jsonify({'logs': logs})
 
-	return app
+@app.route('/devices', methods=['POST'])
+def add_device():
+    data = request.json
+    mac, username, vlan = data.get('mac'), data.get('username'), data.get('vlan')
+    if not all([mac, username, vlan]):
+        return jsonify({'error': 'Missing required fields'}), 400
 
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT mac FROM devices WHERE mac = ?', (mac,))
+            if cursor.fetchone():
+                return jsonify({'error': 'MAC address already exists'}), 409
+            cursor.execute('INSERT INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)',
+                           (mac, username, 1, vlan))
+            conn.commit()
+        return jsonify({'message': 'Device added successfully'})
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
 
-if __name__ == "__main__":
-	app = create_app()
-	app.run(host="0.0.0.0", port=5000, debug=True)
+@app.route('/devices/<mac>', methods=['DELETE'])
+def delete_device(mac):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM devices WHERE mac = ?', (mac,))
+            conn.commit()
+        return jsonify({'message': 'Device deleted successfully'})
+    except sqlite3.Error as e:
+        return jsonify({'error': str(e)}), 500
 
+if __name__ == '__main__':
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS devices
+                          (mac TEXT PRIMARY KEY, username TEXT, authorized INTEGER, vlan INTEGER)''')
+        # Insert initial data (only if not exists to avoid duplicates)
+        cursor.execute("INSERT OR IGNORE INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)",
+                       ('AA-BB-CC-DD-EE-FF', 'Device 1', 1, 10))
+        cursor.execute("INSERT OR IGNORE INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)",
+                       ('11-22-33-44-55-66', 'Device 2', 1, 20))
+        cursor.execute("INSERT OR IGNORE INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)",
+                       ('2C-4F-52-32-38-7F', 'Gateway', 1, 10))
+        conn.commit()
+    app.run(debug=True, host='0.0.0.0', port=5000)
