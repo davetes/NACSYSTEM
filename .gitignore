@@ -1,1 +1,7 @@
-frontend/
+node_modules/
+__pycache__/
+*.pyc
+.env
+data/*.db
+logs/*
+frontend/build/
