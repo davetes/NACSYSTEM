@@ -1,59 +1,90 @@
- 
- # 🔐 **Network Access Control (NAC) System**
-### A secure and intelligent system designed to **enforce access control policies** within a network environment by validating users and devices before granting access.
+# Network Access Control (NAC) System
 
- ## 📌 Objective
-  The objective of this project is to design and implement a Network Access Control (NAC) system that strengthens internal network security by ensuring only authenticated      and compliant devices/users are allowed to connect. This is achieved by enforcing dynamic policies using authentication protocols and network-level controls.
+**Version**: 1.0  
+**Date**: August 19, 2025  
 
- ## 📖 Overview
- Network security is critical in preventing unauthorized access and mitigating internal threats. This NAC system integrates technologies such as 802.1X authentication,         RADIUS, VLAN segmentation, and Linux iptables to provide a robust solution for managing device access at the edge of the network.
+A robust and intelligent Network Access Control (NAC) system designed to enforce access policies, authenticate users and devices, and dynamically segment networks. This project leverages a Flask-based back-end, a React front-end with Material-UI, and a Python-based network scanner to provide a secure and scalable solution for network management.
 
-## The system performs device identification and user validation, and applies network access rules based on:
+---
 
-- Device MAC addresses
-- Authentication credentials
-- Device fingerprinting
-- Network compliance checks
+## Project Overview
 
-## With scripting in Python 🐍💻 and Bash 🖥️🐚 , the system automates key control mechanisms and interacts with underlying Linux networking components to control access dynamically.
+### Objective
+To enhance network security by validating devices and users, assigning VLANs, blocking unauthorized access, and delivering a comprehensive admin dashboard for real-time monitoring and management.
 
-## 🚀 Key Features
-- ✅ 802.1X-based port authentication  
-- ✅ RADIUS server integration for user validation  
-- ✅ MAC address filtering and spoof detection  
-- ✅ Device fingerprinting for enhanced identification  
-- ✅ Dynamic VLAN assignment based on user/device profile  
-- ✅ Access logging and alerting mechanisms  
-- ✅ Firewall rules and packet filtering with `iptables`  
+### System Description
+The NAC system integrates simulated 802.1X authentication, RADIUS user validation, dynamic VLAN assignment, `iptables` firewall enforcement, and a responsive web dashboard. It addresses critical challenges such as unauthorized access, regulatory compliance, and network visibility, offering a professional-grade solution for enterprise environments.
 
+---
 
- ## 🧠 Skills Utilized
-- Authentication Protocols: 802.1X, RADIUS
-- Network Concepts: VLANs, Switching, Layer 2/3 access control
-- Linux Networking: iptables, interfaces, routing
-- Scripting: Python and Bash automation
-- Security Techniques: MAC filtering, device fingerprinting
+## Key Features
+- **802.1X Port Authentication (Simulated)**: Emulates enterprise-level port security protocols.
+- **RADIUS User Validation**: Authenticates users against a simulated RADIUS server.
+- **MAC Address Filtering & Spoof Detection**: Identifies and blocks unauthorized or spoofed devices.
+- **Device Fingerprinting (ARP-Based)**: Detects connected devices using ARP table analysis.
+- **Dynamic VLAN Assignment**: Assigns VLANs based on device authorization status.
+- **Comprehensive Logging, Alerting, & Firewall Blocking**: Records events, issues alerts, and enforces blocks via `iptables`.
+- **Admin Dashboard**: Provides a feature-rich interface to view devices/logs, validate MAC addresses, and manage device registrations.
 
-## 🛠️ Tools & Technologies
-- `FreeRADIUS`
-- `hostapd` (for access point simulation)
-- `iptables` / `nftables`
-- `Python 3.x`
-- `Bash scripting`
-- `Wireshark` / `tcpdump` (for packet inspection)
+---
 
-### 🧪 Use Cases
-- Corporate LAN access control
-- University campus networks
-- IoT device access enforcement
-- Public Wi-Fi network segmentation
+## Skills and Technologies
 
- ## 👥 Group Members
-   ##### Mikiyas Sisay Desta
-   ##### Tesfahun Kere
-   ##### Sebrina Mohammed
-   ##### Mekdim Zelalem
-          
+### Skills Utilized
+- **Authentication**: 802.1X, RADIUS
+- **Networking**: VLAN configuration, `iptables`, ARP
+- **Back-End Development**: Flask, SQLite
+- **Front-End Development**: React, Material-UI
+- **Scripting**: Python, Bash
 
+### Tools and Technologies
+- **FreeRADIUS**: Simulated for user authentication.
+- **hostapd**: Simulated access point functionality.
+- **iptables/nftables**: Firewall rule enforcement.
+- **Python 3.x**: Core scripting and Flask back-end.
+- **Flask**: RESTful API and server-side logic.
+- **React.js**: Dynamic and responsive front-end interface.
+- **Node.js**: JavaScript runtime for front-end development.
+- **SQLite**: Lightweight, embedded database for device storage.
+- **Wireshark/tcpdump**: Optional tools for network traffic analysis.
 
-                  
+---
+
+## Use Cases
+- **Corporate LAN**: Secures employee device access in office environments.
+- **Campus Networks**: Manages device access for students and staff.
+- **IoT Enforcement**: Controls connectivity for IoT devices.
+- **Wi-Fi Segmentation**: Isolates guest and internal network traffic.
+
+---
+
+## Team Members
+- Mikiyas Sisay Desta
+- Tesfahun Kere
+- Sebrina Mohammed
+- Mekdim Zelalem
+
+---
+
+## Table of Contents
+- [Key Features](#key-features)
+- [Setup Environment](#setup-environment)
+- [Usage](#usage)
+  - [System Startup](#system-startup)
+  - [System Interaction](#system-interaction)
+  - [Scanner Automation](#scanner-automation)
+  - [Monitoring and Logging](#monitoring-and-logging)
+- [Directory Structure](#directory-structure)
+- [Configuration](#configuration)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+  - [First-Time Contribution Guide](#first-time-contribution-guide)
+- [License](#license)
+
+---
+
+## Setup Environment
+- **Development Platform**: Optimized for Linux (validated on Fedora 40). It is recommended to use a Python virtual environment to isolate dependencies:
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
