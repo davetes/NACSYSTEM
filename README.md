@@ -1,9 +1,9 @@
 # Network Access Control (NAC) System
 
-**Version**: 1.0  
-**Date**: August 19, 2025  
+**Version**: 2.0  
+**Date**: September 16, 2025  
 
-A robust and intelligent Network Access Control (NAC) system designed to enforce access policies, authenticate users and devices, and dynamically segment networks. This project leverages a Flask-based back-end, a React front-end with Material-UI, and a Python-based network scanner to provide a secure and scalable solution for network management.
+An SDN-oriented Network Access Control (NAC) system that separates the control plane from the data plane. The control plane validates devices, derives policy (e.g., VLAN assignment), and programs the data plane via a southbound driver. The project uses a Flask-based control-plane API, a React front-end, and a pluggable southbound driver (mocked by default on Windows; `iptables` on Linux) to manage access.
 
 ---
 
@@ -13,7 +13,11 @@ A robust and intelligent Network Access Control (NAC) system designed to enforce
 To enhance network security by validating devices and users, assigning VLANs, blocking unauthorized access, and delivering a comprehensive admin dashboard for real-time monitoring and management.
 
 ### System Description
-The NAC system integrates simulated 802.1X authentication, RADIUS user validation, dynamic VLAN assignment, `iptables` firewall enforcement, and a responsive web dashboard. It addresses critical challenges such as unauthorized access, regulatory compliance, and network visibility, offering a professional-grade solution for enterprise environments.
+This SDN-style NAC introduces clear plane separation:
+- Northbound API (Flask): REST endpoints for the UI and integrations.
+- Control Plane (`backend/sdn/control_plane.py`): Validates devices, decides policy, and orchestrates southbound actions.
+- Southbound Driver (`backend/sdn/southbound.py`): Programs the data plane. Default implementation uses `iptables` on Linux and a safe mock on Windows or when `iptables` is unavailable.
+It integrates simulated 802.1X concepts, RADIUS-like validation, dynamic VLAN assignment, logging/alerting, and a responsive dashboard.
 
 ---
 
@@ -23,7 +27,7 @@ The NAC system integrates simulated 802.1X authentication, RADIUS user validatio
 - **MAC Address Filtering & Spoof Detection**: Identifies and blocks unauthorized or spoofed devices.
 - **Device Fingerprinting (ARP-Based)**: Detects connected devices using ARP table analysis.
 - **Dynamic VLAN Assignment**: Assigns VLANs based on device authorization status.
-- **Comprehensive Logging, Alerting, & Firewall Blocking**: Records events, issues alerts, and enforces blocks via `iptables`.
+- **Comprehensive Logging, Alerting, & Firewall Blocking**: Records events, issues alerts, and enforces blocks via `iptables` or mock southbound.
 - **Admin Dashboard**: Provides a feature-rich interface to view devices/logs, validate MAC addresses, and manage device registrations.
 
 ---
@@ -45,7 +49,7 @@ The NAC system integrates simulated 802.1X authentication, RADIUS user validatio
 - **Flask**: RESTful API and server-side logic.
 - **React.js**: Dynamic and responsive front-end interface.
 - **Node.js**: JavaScript runtime for front-end development.
-- **SQLite**: Lightweight, embedded database for device storage.
+- **MongoDB**: Primary database for device storage and VLAN profiles.
 - **Wireshark/tcpdump**: Optional tools for network traffic analysis.
 
 ---

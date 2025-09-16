@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Button, CircularProgress, Box } from '@mui/material';
 import { PieChart, Pie, Tooltip, Legend, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
@@ -11,9 +11,9 @@ function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const devicesRes = await axios.get('/devices', { headers: { 'X-API-KEY': 'admin_api_key' } });
+      const devicesRes = await api.get('/devices');
       setDevices(devicesRes.data);
-      const logsRes = await axios.get('/logs', { headers: { 'X-API-KEY': 'admin_api_key' } });
+      const logsRes = await api.get('/logs');
       setLogs(logsRes.data.logs);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -45,7 +45,7 @@ function Dashboard() {
     <Box>
       {loading ? <CircularProgress /> : (
         <>
-          <Typography variant="h5">Authorized Devices</Typography>
+          <Typography variant="h5">SDN-Controlled Authorized Devices</Typography>
           <TableContainer component={Paper} sx={{ mt: 2, mb: 4 }}>
             <Table>
               <TableHead>
@@ -67,7 +67,7 @@ function Dashboard() {
             </Table>
           </TableContainer>
 
-          <Typography variant="h5">Device Stats</Typography>
+          <Typography variant="h5">SDN Device Stats</Typography>
           <PieChart width={400} height={400}>
             <Pie data={deviceData} dataKey="value" cx="50%" cy="50%" outerRadius={100} label>
               {deviceData.map((entry, index) => (

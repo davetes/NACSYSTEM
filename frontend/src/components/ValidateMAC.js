@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-import { TextField, Button, Typography, Paper, Box } from '@mui/material';
+import api from '../api';
+import { TextField, Button, Typography, Paper, Box, Chip } from '@mui/material';
 
 function ValidateMAC() {
   const [mac, setMac] = useState('');
   const [result, setResult] = useState(null);
 
   const handleSubmit = () => {
-    axios.get(`/validate/${mac}`, {
-      headers: { 'X-API-KEY': 'admin_api_key' }
-    })
+    api.get(`/validate/${mac}`)
       .then(res => setResult(res.data))
-      .catch(err => setResult({ error: err.response.data.error }));
+      .catch(err => setResult({ error: err?.response?.data?.error || 'Request failed' }));
   };
 
   return (
@@ -21,6 +19,13 @@ function ValidateMAC() {
       <Button variant="contained" onClick={handleSubmit} fullWidth>Validate</Button>
       {result && (
         <Box sx={{ mt: 2 }}>
+          {result.authorized !== undefined && (
+            <Chip
+              label={result.authorized ? 'AUTHORIZED' : 'BLOCKED'}
+              color={result.authorized ? 'success' : 'error'}
+              sx={{ mb: 2 }}
+            />
+          )}
           <Typography variant="body1">
             <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '4px' }}>{JSON.stringify(result, null, 2)}</pre>
           </Typography>

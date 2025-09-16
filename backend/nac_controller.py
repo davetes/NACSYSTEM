@@ -5,7 +5,9 @@ import re
 import subprocess
 from typing import Dict, Optional
 from models.database import get_db_connection
+from models.mongo import get_db_and_collections
 from utils.logging import log
+from sdn.southbound import driver as southbound_driver
 
 def normalize_mac_colon_lower(mac_address: str) -> str:
     if mac_address is None:
@@ -25,10 +27,9 @@ def normalize_mac_hyphen_upper(mac_address: str) -> str:
 
 def get_device_by_mac(mac: str) -> Optional[Dict]:
     mac_norm = normalize_mac_colon_lower(mac)
-    conn = get_db_connection()
-    device = conn.execute('SELECT * FROM devices WHERE mac = ?', (mac_norm.upper().replace(":", "-"),)).fetchone()
-    conn.close()
-    return dict(device) if device else None
+    _, devices_col, _ = get_db_and_collections()
+    doc = devices_col.find_one({"mac": mac_norm.upper().replace(":", "-")}, {"_id": 0})
+    return doc if doc else None
 
 def validate_device(mac: str) -> Optional[str]:
     mac_norm = normalize_mac_colon_lower(mac)
@@ -41,28 +42,16 @@ def validate_device(mac: str) -> Optional[str]:
     return username
 
 def get_vlan(username: str) -> Optional[int]:
-    conn = get_db_connection()
-    result = conn.execute('SELECT vlan FROM vlan_profiles WHERE username = ?', (username,)).fetchone()
-    conn.close()
-    vlan = result['vlan'] if result else None
+    _, _, vlan_profiles = get_db_and_collections()
+    row = vlan_profiles.find_one({"username": username}, {"_id": 0, "vlan": 1})
+    vlan = row.get('vlan') if row else None
     log(f"get_vlan: user={username} vlan={vlan}")
     return vlan
 
 def block_device(mac: str) -> bool:
     mac_norm = normalize_mac_colon_lower(mac)
-    commands = [
-        ["iptables", "-A", "INPUT", "-m", "mac", "--mac-source", mac_norm, "-j", "DROP"],
-        ["iptables", "-A", "FORWARD", "-m", "mac", "--mac-source", mac_norm, "-j", "DROP"],
-    ]
-    success = False
-    for cmd in commands:
-        try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            log(f"block_device: rule_added cmd={' '.join(cmd)}")
-            success = True
-        except subprocess.CalledProcessError as e:
-            log(f"block_device: failed cmd={' '.join(cmd)} error={e.stderr}")
-    print(f"Alert: Unauthorized device {mac_norm} blocked!")  # Simulated email alert
+    success = southbound_driver.block_mac(mac_norm)
+    print(f"Alert: Unauthorized device {mac_norm} blocked!")
     return success
 
 def validate_and_assign(mac: str) -> Dict:

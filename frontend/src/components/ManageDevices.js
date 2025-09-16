@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { TextField, Button, Typography, Box, Paper } from '@mui/material';
 
 function ManageDevices() {
@@ -9,19 +9,15 @@ function ManageDevices() {
   const [message, setMessage] = useState('');
 
   const handleAdd = () => {
-    axios.post('/devices', { mac, username, vlan }, {
-      headers: { 'X-API-KEY': 'admin_api_key' }
-    })
+    api.post('/devices', { mac, username, vlan })
       .then(() => setMessage('Device added successfully!'))
-      .catch(err => setMessage('Error: ' + err.response.data.error));
+      .catch(err => setMessage('Error: ' + (err?.response?.data?.error || 'Request failed')));
   };
 
   const handleDelete = () => {
-    axios.delete(`/devices/${mac}`, {
-      headers: { 'X-API-KEY': 'admin_api_key' }
-    })
+    api.delete(`/devices/${mac}`)
       .then(() => setMessage('Device deleted successfully!'))
-      .catch(err => setMessage('Error: ' + err.response.data.error));
+      .catch(err => setMessage('Error: ' + (err?.response?.data?.error || 'Request failed')));
   };
 
   return (
