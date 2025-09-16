@@ -1,7 +1,4 @@
-# Network Access Control (NAC) System
-
-**Version**: 2.0  
-**Date**: September 16, 2025  
+# Software Define Network (SDN) System
 
 An SDN-oriented Network Access Control (NAC) system that separates the control plane from the data plane. The control plane validates devices, derives policy (e.g., VLAN assignment), and programs the data plane via a southbound driver. The project uses a Flask-based control-plane API, a React front-end, and a pluggable southbound driver (mocked by default on Windows; `iptables` on Linux) to manage access.
 
@@ -37,7 +34,7 @@ It integrates simulated 802.1X concepts, RADIUS-like validation, dynamic VLAN as
 ### Skills Utilized
 - **Authentication**: 802.1X, RADIUS
 - **Networking**: VLAN configuration, `iptables`, ARP
-- **Back-End Development**: Flask, SQLite
+- **Back-End Development**: Flask, Mongodb
 - **Front-End Development**: React, Material-UI
 - **Scripting**: Python, Bash
 
