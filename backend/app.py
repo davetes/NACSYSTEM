@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
-from models.mongo import get_db_and_collections, init_mongo_with_seed
+from models.database import get_db_connection, init_db, seed_db
 from sdn.control_plane import control
 from models.policy import list_policies, upsert_policy, delete_policy
 
@@ -10,8 +10,8 @@ app = Flask(__name__)
 API_KEY = os.getenv('API_KEY')
 
 def get_db_connection_legacy():
-    # Removed SQLite support; kept only to avoid import errors if referenced elsewhere
-    raise RuntimeError('SQLite has been removed. Use MongoDB via models.mongo.')
+    # Legacy shim retained for compatibility
+    return get_db_connection()
 
 @app.before_request
 def check_api_key():
@@ -22,9 +22,19 @@ def check_api_key():
 
 @app.route('/devices', methods=['GET'])
 def get_devices():
-    _, devices_col, _ = get_db_and_collections()
-    items = list(devices_col.find({}, {"_id": 0, "mac": 1, "username": 1, "authorized": 1, "vlan": 1}))
-    return jsonify(items)
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT mac, username, authorized, vlan FROM devices")
+        rows = [dict(r) for r in cur.fetchall()]
+        # normalize authorized int to bool for JSON
+        for r in rows:
+            r['authorized'] = bool(r.get('authorized', 0))
+        return jsonify(rows)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/validate/<mac>', methods=['GET'])
 def validate_mac(mac):
@@ -74,33 +84,53 @@ def get_logs():
 
 @app.route('/devices', methods=['POST'])
 def add_device():
-    data = request.json
+    data = request.json or {}
     mac, username, vlan = data.get('mac'), data.get('username'), data.get('vlan')
     if not all([mac, username, vlan]):
         return jsonify({'error': 'Missing required fields'}), 400
     try:
-        _, devices_col, _ = get_db_and_collections()
-        existing = devices_col.find_one({"mac": mac})
-        if existing:
-                return jsonify({'error': 'MAC address already exists'}), 409
-        devices_col.insert_one({"mac": mac, "username": username, "authorized": True, "vlan": int(vlan)})
+        vlan_int = int(vlan)
+    except Exception:
+        return jsonify({'error': 'vlan must be integer'}), 400
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        # authorized defaults to 1 on create
+        cur.execute(
+            "INSERT INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)",
+            (mac, username, 1, vlan_int),
+        )
+        conn.commit()
         return jsonify({'message': 'Device added successfully'})
     except Exception as e:
+        # Detect unique constraint violation
+        if 'UNIQUE' in str(e).upper() or 'unique constraint' in str(e).lower():
+            return jsonify({'error': 'MAC address already exists'}), 409
         return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/devices/<mac>', methods=['DELETE'])
 def delete_device(mac):
     try:
-        _, devices_col, _ = get_db_and_collections()
-        devices_col.delete_one({"mac": mac})
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM devices WHERE mac = ?", (mac,))
+        conn.commit()
         return jsonify({'message': 'Device deleted successfully'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
-    # Initialize Mongo (preferred)
+    # Initialize SQLite and seed data
     try:
-        init_mongo_with_seed()
+        init_db()
+        seed_db()
     except Exception:
         pass
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -3,11 +3,17 @@ import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import ValidateMAC from './components/ValidateMAC';
 import ManageDevices from './components/ManageDevices';
+import SDNValidate from './components/SDNValidate';
+import Policies from './components/Policies';
+import LogsViewer from './components/LogsViewer';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, Drawer, List, ListItem, ListItemIcon, ListItemText, Box, Toolbar, AppBar, Typography } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DevicesOtherIcon from '@mui/icons-material/DevicesOther';
+import PolicyIcon from '@mui/icons-material/Policy';
+import RuleIcon from '@mui/icons-material/Rule';
+import ArticleIcon from '@mui/icons-material/Article';
 
 const theme = createTheme({
   palette: {
@@ -47,6 +53,18 @@ function App() {
               <ListItemIcon><DevicesOtherIcon /></ListItemIcon>
               <ListItemText primary="Manage Devices" />
             </ListItem>
+            <ListItem button component={Link} to="/sdn">
+              <ListItemIcon><RuleIcon /></ListItemIcon>
+              <ListItemText primary="SDN Validate" />
+            </ListItem>
+            <ListItem button component={Link} to="/policies">
+              <ListItemIcon><PolicyIcon /></ListItemIcon>
+              <ListItemText primary="Policies" />
+            </ListItem>
+            <ListItem button component={Link} to="/logs">
+              <ListItemIcon><ArticleIcon /></ListItemIcon>
+              <ListItemText primary="Logs" />
+            </ListItem>
           </List>
         </Drawer>
         <Box component="main" sx={{ flexGrow: 1, p: 3, ml: '240px' }}>
@@ -55,6 +73,9 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/validate" element={<ValidateMAC />} />
             <Route path="/manage" element={<ManageDevices />} />
+            <Route path="/sdn" element={<SDNValidate />} />
+            <Route path="/policies" element={<Policies />} />
+            <Route path="/logs" element={<LogsViewer />} />
           </Routes>
         </Box>
       </Router>

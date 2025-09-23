@@ -5,7 +5,6 @@ import re
 import subprocess
 from typing import Dict, Optional
 from models.database import get_db_connection
-from models.mongo import get_db_and_collections
 from utils.logging import log
 from sdn.southbound import driver as southbound_driver
 
@@ -27,9 +26,23 @@ def normalize_mac_hyphen_upper(mac_address: str) -> str:
 
 def get_device_by_mac(mac: str) -> Optional[Dict]:
     mac_norm = normalize_mac_colon_lower(mac)
-    _, devices_col, _ = get_db_and_collections()
-    doc = devices_col.find_one({"mac": mac_norm.upper().replace(":", "-")}, {"_id": 0})
-    return doc if doc else None
+    mac_key = mac_norm.upper().replace(":", "-")
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT mac, username, authorized, vlan FROM devices WHERE mac = ?", (mac_key,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        doc = {
+            "mac": row["mac"],
+            "username": row["username"],
+            "authorized": bool(row["authorized"]),
+            "vlan": row["vlan"],
+        }
+        return doc
+    finally:
+        conn.close()
 
 def validate_device(mac: str) -> Optional[str]:
     mac_norm = normalize_mac_colon_lower(mac)
@@ -42,11 +55,16 @@ def validate_device(mac: str) -> Optional[str]:
     return username
 
 def get_vlan(username: str) -> Optional[int]:
-    _, _, vlan_profiles = get_db_and_collections()
-    row = vlan_profiles.find_one({"username": username}, {"_id": 0, "vlan": 1})
-    vlan = row.get('vlan') if row else None
-    log(f"get_vlan: user={username} vlan={vlan}")
-    return vlan
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT vlan FROM vlan_profiles WHERE username = ?", (username,))
+        row = cur.fetchone()
+        vlan = row["vlan"] if row else None
+        log(f"get_vlan: user={username} vlan={vlan}")
+        return vlan
+    finally:
+        conn.close()
 
 def block_device(mac: str) -> bool:
     mac_norm = normalize_mac_colon_lower(mac)

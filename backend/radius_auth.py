@@ -1,8 +1,13 @@
-from models.mongo import get_db_and_collections
+from models.database import get_db_connection
 
 def authenticate_user(username: str, password: str) -> bool:
-    if not username.strip():
+    if not username or not username.strip():
         return False
-    _, _, vlan_profiles = get_db_and_collections()
-    user = vlan_profiles.find_one({"username": username})
-    return bool(user)  # Password ignored for simulation
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM vlan_profiles WHERE username = ?", (username,))
+        row = cur.fetchone()
+        return bool(row)  # Password ignored for simulation
+    finally:
+        conn.close()

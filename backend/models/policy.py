@@ -1,45 +1,85 @@
 from typing import Optional, Dict
+import json
+import sqlite3
+from models.database import get_db_connection
 
-from models.mongo import get_db_and_collections
 
-
-def get_policies_collection():
-    db, _, _ = get_db_and_collections()
-    return db['policies']
+def _row_to_policy(row: sqlite3.Row) -> Dict:
+     criteria = row["criteria"]
+     try:
+         criteria_obj = json.loads(criteria) if criteria else {}
+     except Exception:
+         criteria_obj = {}
+     return {"name": row["name"], "vlan": row["vlan"], "criteria": criteria_obj}
 
 
 def upsert_policy(name: str, vlan: int, criteria: Optional[Dict] = None) -> Dict:
-    col = get_policies_collection()
-    criteria = criteria or {}
-    col.update_one({"name": name}, {"$set": {"name": name, "vlan": vlan, "criteria": criteria}}, upsert=True)
-    return {"name": name, "vlan": vlan, "criteria": criteria}
+     criteria = criteria or {}
+     conn = get_db_connection()
+     try:
+         cur = conn.cursor()
+         cur.execute(
+             "INSERT INTO policies (name, vlan, criteria) VALUES (?, ?, ?)\n"
+             "ON CONFLICT(name) DO UPDATE SET vlan=excluded.vlan, criteria=excluded.criteria",
+             (name, vlan, json.dumps(criteria)),
+         )
+         conn.commit()
+         return {"name": name, "vlan": vlan, "criteria": criteria}
+     finally:
+         conn.close()
 
 
 def delete_policy(name: str) -> int:
-    col = get_policies_collection()
-    res = col.delete_one({"name": name})
-    return res.deleted_count
+     conn = get_db_connection()
+     try:
+         cur = conn.cursor()
+         cur.execute("DELETE FROM policies WHERE name = ?", (name,))
+         conn.commit()
+         return cur.rowcount
+     finally:
+         conn.close()
 
 
 def list_policies() -> list:
-    col = get_policies_collection()
-    return list(col.find({}, {"_id": 0}))
+     conn = get_db_connection()
+     try:
+         cur = conn.cursor()
+         cur.execute("SELECT name, vlan, criteria FROM policies")
+         rows = cur.fetchall()
+         return [_row_to_policy(r) for r in rows]
+     finally:
+         conn.close()
 
 
 def find_vlan_for_device(username: Optional[str], mac_hyphen_upper: str) -> Optional[int]:
-    col = get_policies_collection()
-    # Simple policy precedence: username match > MAC prefix match > default policy
-    if username:
-        p = col.find_one({"criteria.username": username}, {"_id": 0, "vlan": 1})
-        if p:
-            return p.get('vlan')
-    prefix = mac_hyphen_upper[:8]
-    p = col.find_one({"criteria.mac_prefix": prefix}, {"_id": 0, "vlan": 1})
-    if p:
-        return p.get('vlan')
-    p = col.find_one({"name": "default"}, {"_id": 0, "vlan": 1})
-    if p:
-        return p.get('vlan')
-    return None
+     conn = get_db_connection()
+     try:
+         cur = conn.cursor()
+         # Username match
+         if username:
+             cur.execute("SELECT vlan, criteria FROM policies")
+             for r in cur.fetchall():
+                 try:
+                     crit = json.loads(r["criteria"]) if r["criteria"] else {}
+                 except Exception:
+                     crit = {}
+                 if crit.get("username") == username:
+                     return r["vlan"]
+         # MAC prefix match
+         prefix = mac_hyphen_upper[:8]
+         cur.execute("SELECT vlan, criteria FROM policies")
+         for r in cur.fetchall():
+             try:
+                 crit = json.loads(r["criteria"]) if r["criteria"] else {}
+             except Exception:
+                 crit = {}
+             if crit.get("mac_prefix") == prefix:
+                 return r["vlan"]
+         # Default policy
+         cur.execute("SELECT vlan FROM policies WHERE name = ?", ("default",))
+         row = cur.fetchone()
+         return row["vlan"] if row else None
+     finally:
+         conn.close()
 
 

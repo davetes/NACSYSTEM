@@ -1,0 +1,54 @@
+import React, { useState } from 'react';
+import api from '../api';
+import { TextField, Button, Typography, Paper, Box, Chip, Stack } from '@mui/material';
+
+function SDNValidate() {
+  const [mac, setMac] = useState('');
+  const [result, setResult] = useState(null);
+  const [message, setMessage] = useState('');
+
+  const handleValidate = () => {
+    setMessage('');
+    api.get(`/sdn/validate/${mac}`)
+      .then(res => setResult(res.data))
+      .catch(err => setResult({ error: err?.response?.data?.error || 'Request failed' }));
+  };
+
+  const handleEnforce = () => {
+    setMessage('');
+    api.post(`/sdn/enforce/${mac}`)
+      .then(res => {
+        setResult(res.data);
+        setMessage('Policy enforced successfully');
+      })
+      .catch(err => setMessage('Error: ' + (err?.response?.data?.error || 'Request failed')));
+  };
+
+  return (
+    <Paper sx={{ p: 4, m: 2, bgcolor: '#ffffff', boxShadow: 3 }}>
+      <Typography variant="h6" sx={{ mb: 2 }}>SDN Validate & Enforce</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+        <TextField label="MAC Address" value={mac} onChange={e => setMac(e.target.value)} fullWidth />
+        <Button variant="contained" onClick={handleValidate}>Validate</Button>
+        <Button variant="outlined" color="secondary" onClick={handleEnforce}>Enforce</Button>
+      </Stack>
+      {message && <Typography sx={{ mt: 2, color: message.startsWith('Error') ? 'red' : 'green' }}>{message}</Typography>}
+      {result && (
+        <Box sx={{ mt: 2 }}>
+          {result.authorized !== undefined && (
+            <Chip
+              label={result.authorized ? 'AUTHORIZED' : 'BLOCKED'}
+              color={result.authorized ? 'success' : 'error'}
+              sx={{ mb: 2 }}
+            />
+          )}
+          <Typography variant="body1">
+            <pre style={{ background: '#f5f5f5', padding: '10px', borderRadius: '4px' }}>{JSON.stringify(result, null, 2)}</pre>
+          </Typography>
+        </Box>
+      )}
+    </Paper>
+  );
+}
+
+export default SDNValidate;

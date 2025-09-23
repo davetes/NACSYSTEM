@@ -9,6 +9,7 @@
     "@mui/material": "^5.16.7",
     "axios": "^1.11.0",
     "my-project": "file:..",
+    "nodemon": "^3.1.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1",
@@ -18,6 +19,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "nodemon index.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -38,6 +40,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+
+    
   },
   "proxy": "http://localhost:5000",
   "description": "A secure, intelligent NAC system to enforce access policies, authenticate users/devices, and segment networks dynamically.",

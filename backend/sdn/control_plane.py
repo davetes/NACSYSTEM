@@ -1,6 +1,6 @@
 from typing import Dict, Optional
-
-from models.mongo import get_db_and_collections
+import sqlite3
+from models.database import get_db_connection
 from utils.logging import log
 from sdn.factory import get_southbound_driver
 from nac_controller import normalize_mac_colon_lower
@@ -11,14 +11,31 @@ class SDNControlPlane:
     """High-level NAC/SDN control logic: validate, derive policy, program data plane."""
 
     def _get_device_by_mac(self, mac_hyphen_upper: str) -> Optional[Dict]:
-        _, devices_col, _ = get_db_and_collections()
-        doc = devices_col.find_one({"mac": mac_hyphen_upper}, {"_id": 0})
-        return doc if doc else None
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT mac, username, authorized, vlan FROM devices WHERE mac = ?", (mac_hyphen_upper,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            return {
+                "mac": row["mac"],
+                "username": row["username"],
+                "authorized": bool(row["authorized"]),
+                "vlan": row["vlan"],
+            }
+        finally:
+            conn.close()
 
     def _get_vlan_for_user(self, username: str) -> Optional[int]:
-        _, _, vlan_profiles = get_db_and_collections()
-        row = vlan_profiles.find_one({"username": username}, {"_id": 0, "vlan": 1})
-        return row['vlan'] if row else None
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT vlan FROM vlan_profiles WHERE username = ?", (username,))
+            row = cur.fetchone()
+            return row["vlan"] if row else None
+        finally:
+            conn.close()
 
     def __init__(self) -> None:
         self.driver = get_southbound_driver()
