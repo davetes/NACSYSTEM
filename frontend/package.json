@@ -10,6 +10,8 @@
     "axios": "^1.11.0",
     "my-project": "file:..",
     "nodemon": "^3.1.10",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1",
@@ -20,6 +22,8 @@
   "scripts": {
     "start": "react-scripts start",
     "dev": "nodemon index.js",
+    "mock": "node mock-server/server.js",
+    "dev:all": "concurrently \"node mock-server/server.js\" \"react-scripts start\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -44,9 +48,12 @@
     
   },
   "proxy": "http://localhost:5000",
-  "description": "A secure, intelligent NAC system to enforce access policies, authenticate users/devices, and segment networks dynamically.",
+  "description": "An SDN dashboard for centralized control, intents, flows, topology, and health monitoring.",
   "main": "index.js",
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
 }
