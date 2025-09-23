@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from models.database import get_db_connection, init_db, seed_db
 from sdn.control_plane import control
@@ -81,6 +82,54 @@ def get_logs():
     with open('../logs/nac.log', 'r') as f:
         logs = f.readlines()
     return jsonify({'logs': logs})
+
+# --- SDN health and alerts (for frontend HealthPanel) ---
+@app.route('/api/health', methods=['GET'])
+def api_health():
+    # Basic health payload; extend with real checks as needed
+    services = [
+        { 'name': 'topology-service', 'status': 'UP' },
+        { 'name': 'intent-service', 'status': 'UP' },
+        { 'name': 'flow-programmer', 'status': 'UP' },
+    ]
+    payload = {
+        'controller': {
+            'status': 'UP',
+            'version': os.getenv('APP_VERSION', '0.1.0')
+        },
+        'services': services,
+        'updatedAt': datetime.utcnow().isoformat() + 'Z'
+    }
+    return jsonify(payload)
+
+
+@app.route('/api/alerts', methods=['GET'])
+def api_alerts():
+    # Parse recent lines in the NAC log to surface warnings/errors
+    results = []
+    try:
+        with open('../logs/nac.log', 'r') as f:
+            lines = f.readlines()[-200:]
+        for line in lines:
+            text = line.strip()
+            low = text.lower()
+            severity = 'info'
+            if 'error' in low or 'failed' in low or 'exception' in low:
+                severity = 'error'
+            elif 'warn' in low or 'unauthorized' in low or 'degraded' in low or 'denied' in low:
+                severity = 'warning'
+            # naive timestamp extraction: assume logs like "YYYY-mm-dd ... - message"
+            ts_part = text.split(' - ')[0].strip()
+            try:
+                # If ts_part parses, use it; else fallback to now
+                ts = ts_part if ts_part else datetime.utcnow().isoformat() + 'Z'
+            except Exception:
+                ts = datetime.utcnow().isoformat() + 'Z'
+            results.append({ 'severity': severity, 'message': text, 'ts': ts })
+    except Exception:
+        # If logs file not present, return empty list
+        results = []
+    return jsonify(results)
 
 @app.route('/devices', methods=['POST'])
 def add_device():

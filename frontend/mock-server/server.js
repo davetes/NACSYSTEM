@@ -46,6 +46,11 @@ let alerts = [
   { severity: 'error', message: 'flow-programmer unreachable', ts: now() },
 ];
 
+// MAC registry
+let macs = [
+  { mac: 'AA:BB:CC:DD:EE:01', desc: 'Demo device', tenant: 'default', createdAt: now() }
+];
+
 // Routes
 app.get('/api/topology', (req, res) => {
   topology.updatedAt = now();
@@ -78,6 +83,26 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/alerts', (req, res) => {
   res.json(alerts);
+});
+
+// MAC endpoints
+app.get('/api/mac', (req, res) => {
+  res.json(macs);
+});
+
+app.post('/api/mac', (req, res) => {
+  const { mac, desc = '', tenant = 'default' } = req.body || {};
+  if (!mac) return res.status(400).json({ error: 'mac is required' });
+  const macNorm = String(mac).trim();
+  if (!/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/.test(macNorm)) {
+    return res.status(400).json({ error: 'Invalid MAC format. Use XX:XX:XX:XX:XX:XX' });
+  }
+  if (macs.find(m => m.mac.toLowerCase() === macNorm.toLowerCase())) {
+    return res.status(409).json({ error: 'MAC already exists' });
+  }
+  const entry = { mac: macNorm.toUpperCase(), desc, tenant, createdAt: now() };
+  macs.push(entry);
+  return res.json({ ok: true, mac: entry });
 });
 
 const PORT = process.env.PORT || 5000;
