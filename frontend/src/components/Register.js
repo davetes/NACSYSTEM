@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, Card, CardContent, TextField, Typography, Alert, Stack, Link as MuiLink } from '@mui/material';
+import { Box, Button, TextField, Typography, Alert, Stack, Link as MuiLink } from '@mui/material';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
@@ -41,45 +41,44 @@ export default function Register() {
   };
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', p: 2 }}>
-      <Card sx={{ width: 380 }}>
-        <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Register
-          </Typography>
-          <Stack spacing={2} component="form" onSubmit={onSubmit}>
-            {error && <Alert severity="error">{error}</Alert>}
-            <TextField
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoFocus
-              fullWidth
-            />
-            <TextField
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Confirm Password"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              fullWidth
-            />
-            <Button type="submit" variant="contained" disabled={loading}>
-              {loading ? 'Creating account...' : 'Register'}
-            </Button>
-            <Typography variant="body2">
-              Already have an account?{' '}
-              <MuiLink component={Link} to="/login">Login</MuiLink>
-            </Typography>
-          </Stack>
-        </CardContent>
-      </Card>
+    <Box>
+      <Typography variant="h4" fontWeight={700} gutterBottom>
+        Create your account
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Join PulseNet to manage your network seamlessly
+      </Typography>
+      <Stack spacing={2} component="form" onSubmit={onSubmit}>
+        {error && <Alert severity="error">{error}</Alert>}
+        <TextField
+          label="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoFocus
+          fullWidth
+        />
+        <TextField
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          fullWidth
+        />
+        <TextField
+          label="Confirm Password"
+          type="password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          fullWidth
+        />
+        <Button type="submit" variant="contained" size="large" disabled={loading}>
+          {loading ? 'Creating account...' : 'Register'}
+        </Button>
+        <Typography variant="body2">
+          Already have an account?{' '}
+          <MuiLink component={Link} to="/login">Sign in</MuiLink>
+        </Typography>
+      </Stack>
     </Box>
   );
 }

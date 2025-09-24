@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import SDNValidate from './components/SDNValidate';
 import LogsViewer from './components/LogsViewer';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline, Drawer, List, ListItem, ListItemIcon, ListItemText, Box, Toolbar, AppBar, Typography, IconButton, useMediaQuery } from '@mui/material';
+import { CssBaseline, Drawer, List, ListItem, ListItemIcon, ListItemText, Box, Toolbar, AppBar, Typography, IconButton, useMediaQuery, Container, Paper } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import RuleIcon from '@mui/icons-material/Rule';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -25,8 +25,8 @@ import MacAddressForm from './components/MacAddressForm';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 import Login from './components/Login';
 import Register from './components/Register';
-import LoginIcon from '@mui/icons-material/Login';
-import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
+// import LoginIcon from '@mui/icons-material/Login';
+// import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
 
 const theme = createTheme({
   palette: {
@@ -44,6 +44,85 @@ function App() {
   const isMdUp = useMediaQuery('(min-width:900px)');
 
   const drawerWidth = 240;
+
+  // Auth state derived from localStorage
+  const isAuthed = useMemo(() => {
+    try {
+      return Boolean(localStorage.getItem('auth_token'));
+    } catch (e) {
+      return false;
+    }
+  }, []);
+
+  // Route guard components
+  const RequireAuth = ({ children }) => {
+    const authed = (() => {
+      try { return Boolean(localStorage.getItem('auth_token')); } catch { return false; }
+    })();
+    return authed ? children : <Navigate to="/login" replace />;
+  };
+
+  // Prevent showing auth pages if already authenticated
+  const AuthOnly = ({ children }) => {
+    const authed = (() => {
+      try { return Boolean(localStorage.getItem('auth_token')); } catch { return false; }
+    })();
+    return authed ? <Navigate to="/" replace /> : children;
+  };
+
+  // Layouts
+  const DashboardLayout = () => (
+    <>
+      <AppBar position="fixed">
+        <Toolbar>
+          {!isMdUp && (
+            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 2 }} aria-label="open drawer">
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className={"text-white"}>
+            PulseNet
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      {/* Temporary drawer for mobile */}
+      {!isMdUp && (
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{ '& .MuiDrawer-paper': { width: drawerWidth } }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+      {/* Permanent drawer for md and up */}
+      {isMdUp && (
+        <Drawer
+          variant="permanent"
+          sx={{ width: drawerWidth, flexShrink: 0, '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' } }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { xs: 0, md: `${drawerWidth}px` } }}>
+        <Toolbar />
+        <Outlet />
+      </Box>
+    </>
+  );
+
+  const AuthLayout = () => (
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2,
+               background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0ea5e9 100%)' }}>
+      <Container maxWidth="sm">
+        <Paper elevation={12} sx={{ p: 4, borderRadius: 3, backdropFilter: 'blur(6px)' }}>
+          <Outlet />
+        </Paper>
+      </Container>
+    </Box>
+  );
 
   const drawerContent = (
     <>
@@ -85,14 +164,6 @@ function App() {
           <ListItemIcon><PolicyIcon /></ListItemIcon>
           <ListItemText primary="Policy" />
         </ListItem>
-        <ListItem button component={Link} to="/login" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><LoginIcon /></ListItemIcon>
-          <ListItemText primary="Login" />
-        </ListItem>
-        <ListItem button component={Link} to="/register" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><PersonAddAltIcon /></ListItemIcon>
-          <ListItemText primary="Register" />
-        </ListItem>
       </List>
     </>
   );
@@ -101,42 +172,15 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <AppBar position="fixed">
-          <Toolbar>
-            {!isMdUp && (
-              <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 2 }} aria-label="open drawer">
-                <MenuIcon />
-              </IconButton>
-            )}
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className={"text-white"}>
-              PulseNet
-            </Typography>
-          </Toolbar>
-        </AppBar>
-        {/* Temporary drawer for mobile */}
-        {!isMdUp && (
-          <Drawer
-            variant="temporary"
-            open={mobileOpen}
-            onClose={() => setMobileOpen(false)}
-            ModalProps={{ keepMounted: true }}
-            sx={{ '& .MuiDrawer-paper': { width: drawerWidth } }}
-          >
-            {drawerContent}
-          </Drawer>
-        )}
-        {/* Permanent drawer for md and up */}
-        {isMdUp && (
-          <Drawer
-            variant="permanent"
-            sx={{ width: drawerWidth, flexShrink: 0, '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' } }}
-          >
-            {drawerContent}
-          </Drawer>
-        )}
-        <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { xs: 0, md: `${drawerWidth}px` } }}>
-          <Toolbar />
-          <Routes>
+        <Routes>
+          {/* Auth pages with dedicated layout and redirect if already authed */}
+          <Route element={<AuthOnly><AuthLayout /></AuthOnly>}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Route>
+
+          {/* Dashboard and app pages, protected */}
+          <Route element={<RequireAuth><DashboardLayout /></RequireAuth>}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/sdn" element={<SDNValidate />} />
             <Route path="/topology" element={<TopologyGraph />} />
@@ -146,10 +190,11 @@ function App() {
             <Route path="/health" element={<HealthPanel />} />
             <Route path="/logs" element={<LogsViewer />} />
             <Route path="/policy" element={<Policy />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-          </Routes>
-        </Box>
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to={isAuthed ? '/' : '/login'} replace />} />
+        </Routes>
       </Router>
     </ThemeProvider>
   );
