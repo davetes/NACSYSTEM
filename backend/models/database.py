@@ -41,6 +41,17 @@ def init_db() -> None:
             )
             """
         )
+        # Users table for authentication
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT
+            )
+            """
+        )
         # Policies table; criteria stored as JSON string
         cur.execute(
             """
@@ -98,6 +109,16 @@ def seed_db() -> None:
         cur.execute("SELECT COUNT(1) FROM vlan_profiles")
         if (cur.fetchone()[0] or 0) == 0:
             _seed_vlan_profiles(cur)
+        # Ensure at least a default admin user exists
+        # Safe existence check
+        cur.execute("SELECT 1 FROM users WHERE username = ?", ("admin",))
+        has_admin = cur.fetchone() is not None
+        if not has_admin:
+            # Password hash to be created by app layer if needed. Here insert a disabled placeholder.
+            cur.execute(
+                "INSERT OR IGNORE INTO users (username, password_hash, created_at) VALUES (?, ?, datetime('now'))",
+                ("admin", "",),
+            )
         conn.commit()
     finally:
         conn.close()

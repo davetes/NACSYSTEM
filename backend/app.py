@@ -1,14 +1,35 @@
 from flask import Flask, request, jsonify
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from flask_cors import CORS
+import jwt
+from werkzeug.security import generate_password_hash, check_password_hash
 from models.database import get_db_connection, init_db, seed_db
 from sdn.control_plane import control
 from models.policy import list_policies, upsert_policy, delete_policy
 
 load_dotenv()
 app = Flask(__name__)
+CORS(app)
 API_KEY = os.getenv('API_KEY')
+JWT_SECRET = os.getenv('JWT_SECRET', 'change_this_dev_secret')
+JWT_ALG = 'HS256'
+
+def _generate_token(user_id: int, username: str) -> str:
+    payload = {
+        'sub': user_id,
+        'username': username,
+        'exp': datetime.utcnow() + timedelta(hours=8)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+
+def _verify_token(token: str):
+    try:
+        data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+        return data
+    except Exception:
+        return None
 
 def get_db_connection_legacy():
     # Legacy shim retained for compatibility
@@ -16,10 +37,85 @@ def get_db_connection_legacy():
 
 @app.before_request
 def check_api_key():
-    if request.path.startswith('/'):
-        api_key = request.headers.get('X-API-KEY')
-        if api_key != API_KEY:
-            return jsonify({'error': 'Unauthorized'}), 401
+    # Allow unauthenticated access to auth endpoints and health/static assets
+    open_paths = (
+        '/auth/login', '/auth/register', '/auth/me', '/api/health', '/api/alerts', '/api/topology', '/api/flows'
+    )
+    if request.path in open_paths or request.method == 'OPTIONS':
+        return None
+    # Accept either X-API-KEY or Bearer token
+    api_key = request.headers.get('X-API-KEY')
+    if api_key == API_KEY and api_key is not None:
+        return None
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header.startswith('Bearer '):
+        token = auth_header.split(' ', 1)[1].strip()
+        data = _verify_token(token)
+        if data:
+            # Optionally attach to request context via environ
+            request.environ['auth.user'] = data
+            return None
+    return jsonify({'error': 'Unauthorized'}), 401
+
+# --- Authentication Endpoints ---
+@app.route('/auth/register', methods=['POST'])
+def auth_register():
+    data = request.json or {}
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+    if not username or not password:
+        return jsonify({'error': 'username and password are required'}), 400
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM users WHERE username = ?", (username,))
+        if cur.fetchone():
+            return jsonify({'error': 'username already exists'}), 409
+        pwd_hash = generate_password_hash(password)
+        cur.execute(
+            "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, datetime('now'))",
+            (username, pwd_hash)
+        )
+        conn.commit()
+        user_id = cur.lastrowid
+        token = _generate_token(user_id, username)
+        return jsonify({'token': token, 'user': {'id': user_id, 'username': username}})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/auth/login', methods=['POST'])
+def auth_login():
+    data = request.json or {}
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+    if not username or not password:
+        return jsonify({'error': 'username and password are required'}), 400
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash FROM users WHERE username = ?", (username,))
+        row = cur.fetchone()
+        if not row or not check_password_hash(row['password_hash'], password):
+            return jsonify({'error': 'invalid credentials'}), 401
+        token = _generate_token(row['id'], username)
+        return jsonify({'token': token, 'user': {'id': row['id'], 'username': username}})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/auth/me', methods=['GET'])
+def auth_me():
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return jsonify({'error': 'Unauthorized'}), 401
+    token = auth_header.split(' ', 1)[1].strip()
+    data = _verify_token(token)
+    if not data:
+        return jsonify({'error': 'Unauthorized'}), 401
+    return jsonify({'user': {'id': data.get('sub'), 'username': data.get('username')}})
 
 @app.route('/devices', methods=['GET'])
 def get_devices():

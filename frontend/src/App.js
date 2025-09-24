@@ -23,6 +23,10 @@ import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import MacAddressForm from './components/MacAddressForm';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
+import Login from './components/Login';
+import Register from './components/Register';
+import LoginIcon from '@mui/icons-material/Login';
+import PersonAddAltIcon from '@mui/icons-material/PersonAddAlt';
 
 const theme = createTheme({
   palette: {
@@ -81,6 +85,14 @@ function App() {
           <ListItemIcon><PolicyIcon /></ListItemIcon>
           <ListItemText primary="Policy" />
         </ListItem>
+        <ListItem button component={Link} to="/login" onClick={() => setMobileOpen(false)}>
+          <ListItemIcon><LoginIcon /></ListItemIcon>
+          <ListItemText primary="Login" />
+        </ListItem>
+        <ListItem button component={Link} to="/register" onClick={() => setMobileOpen(false)}>
+          <ListItemIcon><PersonAddAltIcon /></ListItemIcon>
+          <ListItemText primary="Register" />
+        </ListItem>
       </List>
     </>
   );
@@ -134,6 +146,8 @@ function App() {
             <Route path="/health" element={<HealthPanel />} />
             <Route path="/logs" element={<LogsViewer />} />
             <Route path="/policy" element={<Policy />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Routes>
         </Box>
       </Router>
