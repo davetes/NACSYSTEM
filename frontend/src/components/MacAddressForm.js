@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardHeader, CardContent, Stack, TextField, Button, Alert, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress } from '@mui/material';
+import { Card, CardHeader, CardContent, Stack, TextField, Button, Alert, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, IconButton, Tooltip } from '@mui/material';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import api from '../api';
 
 // Uses Flask backend endpoints:
@@ -21,6 +22,29 @@ export default function MacAddressForm() {
     if (hex.length !== 12) return null;
     if (!/^[0-9A-F]{12}$/.test(hex)) return null;
     return hex.match(/.{1,2}/g).join(':');
+  };
+
+  const onDelete = async (macToDelete) => {
+    setSubmitting(true);
+    setError('');
+    setSuccess('');
+    try {
+      // Try a RESTful delete by MAC in path
+      await api.delete(`/devices/${encodeURIComponent(macToDelete)}`);
+      setSuccess(`Removed ${macToDelete}`);
+      await load();
+    } catch (err1) {
+      try {
+        // Fallback: some backends accept body for deletes
+        await api.delete('/devices', { data: { mac: macToDelete } });
+        setSuccess(`Removed ${macToDelete}`);
+        await load();
+      } catch (err2) {
+        setError(err2?.response?.data?.error || err1?.response?.data?.error || `Failed to remove ${macToDelete}`);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const load = async () => {
@@ -103,6 +127,7 @@ export default function MacAddressForm() {
                   <TableCell>Username</TableCell>
                   <TableCell>Authorized</TableCell>
                   <TableCell align="right">VLAN</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -112,9 +137,18 @@ export default function MacAddressForm() {
                     <TableCell>{d.username}</TableCell>
                     <TableCell>{String(d.authorized)}</TableCell>
                     <TableCell align="right">{d.vlan}</TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={`Remove ${d.mac}`}>
+                        <span>
+                          <IconButton color="error" size="small" onClick={() => onDelete(d.mac)} disabled={submitting}>
+                            <DeleteForeverIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </TableCell>
                   </TableRow>
                 ))}
-                {!devices.length && <TableRow><TableCell colSpan={4}>No devices found.</TableCell></TableRow>}
+                {!devices.length && <TableRow><TableCell colSpan={5}>No devices found.</TableCell></TableRow>}
               </TableBody>
             </Table>
           )}
