@@ -154,23 +154,6 @@ export default function HealthPanel() {
                 ))}
               </Stack>
             </Box>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: theme => `1px solid ${theme.palette.divider}` }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Alerts</Typography>
-              <Stack spacing={1.2}>
-                {alerts.map((al, idx) => (
-                  <Alert key={idx} severity={al.severity} variant="outlined" sx={{ alignItems: 'center' }}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
-                      <Typography variant="body2">{al.message}</Typography>
-                      <Typography variant="caption" color="text.secondary">{new Date(al.ts).toLocaleTimeString()}</Typography>
-                    </Stack>
-                  </Alert>
-                ))}
-                {!alerts.length && <Typography variant="body2">No active alerts.</Typography>}
-              </Stack>
-            </Box>
 
             <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: theme => `1px solid ${theme.palette.divider}`, mt: 3 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Network Performance</Typography>
@@ -198,6 +181,25 @@ export default function HealthPanel() {
                 </ResponsiveContainer>
               </Box>
             </Box>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Box sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper', border: theme => `1px solid ${theme.palette.divider}` }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>Alerts</Typography>
+              <Stack spacing={1.2}>
+                {alerts.map((al, idx) => (
+                  <Alert key={idx} severity={al.severity} variant="outlined" sx={{ alignItems: 'center' }}>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ width: '100%' }}>
+                      <Typography variant="body2">{al.message}</Typography>
+                      <Typography variant="caption" color="text.secondary">{new Date(al.ts).toLocaleTimeString()}</Typography>
+                    </Stack>
+                  </Alert>
+                ))}
+                {!alerts.length && <Typography variant="body2">No active alerts.</Typography>}
+              </Stack>
+            </Box>
+
+            
           </Grid>
         </Grid>
       </CardContent>
