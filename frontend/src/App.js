@@ -9,6 +9,8 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import RuleIcon from '@mui/icons-material/Rule';
 import ArticleIcon from '@mui/icons-material/Article';
 import MenuIcon from '@mui/icons-material/Menu';
+import Policy from './components/Policy';
+import PolicyIcon from '@mui/icons-material/Policy';
 
 // SDN UI components
 import TopologyGraph from './components/TopologyGraph';
@@ -75,6 +77,10 @@ function App() {
           <ListItemIcon><ArticleIcon /></ListItemIcon>
           <ListItemText primary="Logs" />
         </ListItem>
+        <ListItem button component={Link} to="/policy" onClick={() => setMobileOpen(false)}>
+          <ListItemIcon><PolicyIcon /></ListItemIcon>
+          <ListItemText primary="Policy" />
+        </ListItem>
       </List>
     </>
   );
@@ -90,7 +96,7 @@ function App() {
                 <MenuIcon />
               </IconButton>
             )}
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} classname={"text-white"}>
+            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className={"text-white"}>
               PulseNet
             </Typography>
           </Toolbar>
@@ -127,6 +133,7 @@ function App() {
             <Route path="/flows" element={<FlowTable />} />
             <Route path="/health" element={<HealthPanel />} />
             <Route path="/logs" element={<LogsViewer />} />
+            <Route path="/policy" element={<Policy />} />
           </Routes>
         </Box>
       </Router>
