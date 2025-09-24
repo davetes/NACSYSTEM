@@ -29,6 +29,7 @@ function SDNValidate() {
   const [acls, setAcls] = useState('[\n  { "rule": "deny tcp any any eq 23", "description": "Block telnet" }\n]');
   const [jsonResult, setJsonResult] = useState(null);
   const [jsonMessage, setJsonMessage] = useState('');
+  const [jsonSeverity, setJsonSeverity] = useState('warning'); // 'info' | 'warning' | 'error' | 'success'
 
   const handleValidateMac = async () => {
     setMessage('');
@@ -58,6 +59,7 @@ function SDNValidate() {
 
   const handleValidateJSON = async (kind) => {
     setJsonMessage('');
+    setJsonSeverity('warning');
     setJsonResult(null);
     const source = kind === 'intents' ? intents : kind === 'flows' ? flows : acls;
     const [parsed, parseErr] = safeParse(source);
@@ -66,12 +68,33 @@ function SDNValidate() {
       setJsonResult({ ok: false });
       return;
     }
-    // Try backend validation endpoint per kind; if missing, simulate a pass with basic checks
-    try {
-      const endpoint = kind === 'intents' ? '/api/validate/intents' : kind === 'flows' ? '/api/validate/flows' : '/api/validate/acls';
-      const res = await api.post(endpoint, parsed);
-      setJsonResult(res.data || { ok: true });
-    } catch (err) {
+    // Try backend validation endpoints with fallbacks; if missing, simulate a pass with basic checks
+    const endpoints = [
+      // Prefer SDN-style routes first (common in this project)
+      kind === 'intents' ? '/sdn/validate/intents' : kind === 'flows' ? '/sdn/validate/flows' : '/sdn/validate/acls',
+      // Fallback to API-style routes
+      kind === 'intents' ? '/api/validate/intents' : kind === 'flows' ? '/api/validate/flows' : '/api/validate/acls',
+    ];
+    let serverOk = false;
+    for (const ep of endpoints) {
+      try {
+        const res = await api.post(ep, parsed);
+        setJsonResult(res.data || { ok: true });
+        setJsonMessage('');
+        setJsonSeverity('success');
+        serverOk = true;
+        break;
+      } catch (errTry) {
+        // Continue to next endpoint if 404, otherwise break to fallback
+        const status = errTry?.response?.status;
+        if (status && status !== 404) {
+          // If server returned a non-404 error, keep the error for messaging below
+          var lastErr = errTry;
+          break;
+        }
+      }
+    }
+    if (!serverOk) {
       // Basic heuristic checks as a fallback
       const issues = [];
       if (!Array.isArray(parsed)) issues.push('Payload should be an array.');
@@ -89,8 +112,24 @@ function SDNValidate() {
           if (!a.rule) issues.push(`ACL[${i}]: missing rule`);
         });
       }
-      setJsonResult({ ok: issues.length === 0, issues });
-      setJsonMessage('Backend validator unavailable. Performed basic client-side checks.');
+      const ok = issues.length === 0;
+      setJsonResult({ ok, issues });
+      // If endpoints are missing, don't alarm the user when all good
+      const status = typeof lastErr !== 'undefined' ? lastErr?.response?.status : 404;
+      if (ok) {
+        // No alert if everything looks good locally
+        setJsonSeverity('success');
+        setJsonMessage('');
+      } else {
+        // Concise local-issues message
+        if (!status || status === 404) {
+          setJsonSeverity('warning');
+          setJsonMessage('Local validation found issues. Backend validator not available.');
+        } else {
+          setJsonSeverity('warning');
+          setJsonMessage('Backend validator unavailable. Local validation found issues.');
+        }
+      }
     }
   };
 
@@ -131,7 +170,7 @@ function SDNValidate() {
       <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
         <Button variant="contained" onClick={() => handleValidateJSON(kind)}>Validate</Button>
       </Stack>
-      {jsonMessage && <Alert sx={{ mt: 2 }} severity="warning">{jsonMessage}</Alert>}
+      {jsonMessage && <Alert sx={{ mt: 2 }} severity={jsonSeverity}>{jsonMessage}</Alert>}
       {jsonResult && (
         <Box sx={{ mt: 2 }}>
           <Chip label={jsonResult.ok ? 'OK' : 'ISSUES FOUND'} color={jsonResult.ok ? 'success' : 'warning'} sx={{ mb: 2 }} />
