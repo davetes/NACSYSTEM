@@ -37,6 +37,45 @@ def get_devices():
     finally:
         conn.close()
 
+@app.route('/api/intents', methods=['POST'])
+def api_intents():
+    data = request.json or {}
+    src = data.get('src')
+    dst = data.get('dst')
+    constraints = data.get('constraints') or {}
+    tenant = data.get('tenant') or 'default'
+    if not src or not dst:
+        return jsonify({'error': 'src and dst are required'}), 400
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        # Ensure intents table exists
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS intents (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              src TEXT NOT NULL,
+              dst TEXT NOT NULL,
+              constraints TEXT,
+              tenant TEXT,
+              status TEXT,
+              created_at TEXT
+            )
+            """
+        )
+        cur.execute(
+            "INSERT INTO intents (src, dst, constraints, tenant, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (src, dst, str(constraints), tenant, 'ACCEPTED', datetime.utcnow().isoformat() + 'Z')
+        )
+        conn.commit()
+        intent_id = cur.lastrowid
+        # Minimal compiledFlows count; in a real system this would be produced by the compiler
+        compiled_flows = 1
+        return jsonify({'id': intent_id, 'status': 'ACCEPTED', 'compiledFlows': compiled_flows})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 @app.route('/validate/<mac>', methods=['GET'])
 def validate_mac(mac):
     # Route validation via SDN control plane
@@ -130,6 +169,68 @@ def api_alerts():
         # If logs file not present, return empty list
         results = []
     return jsonify(results)
+
+# --- Minimal SDN topology and flows for frontend panels ---
+@app.route('/api/topology', methods=['GET'])
+def api_topology():
+    # Basic static spine-leaf with DB devices as leaves
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT mac FROM devices")
+        device_rows = cur.fetchall() or []
+        devices = [{'id': r['mac'], 'name': r['mac'], 'role': 'leaf'} for r in device_rows]
+        # Add one spine node
+        spine_id = 'SPINE-1'
+        devices.append({'id': spine_id, 'name': 'Spine-1', 'role': 'spine'})
+        links = [{'src': d['id'], 'dst': spine_id, 'utilization': 0} for d in devices if d['role'] == 'leaf']
+        payload = {
+            'devices': devices,
+            'links': links,
+            'updatedAt': datetime.utcnow().isoformat() + 'Z'
+        }
+        return jsonify(payload)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/flows', methods=['GET'])
+def api_flows():
+    device_id = request.args.get('deviceId')
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        if device_id:
+            cur.execute("SELECT mac, authorized, vlan FROM devices WHERE mac = ?", (device_id,))
+        else:
+            cur.execute("SELECT mac, authorized, vlan FROM devices")
+        rows = cur.fetchall() or []
+        flows = []
+        for idx, r in enumerate(rows, start=1):
+            mac = (r['mac'] or '').replace('-', ':').lower()
+            if r['authorized'] and r['vlan'] is not None:
+                flows.append({
+                    'id': f'f{idx}',
+                    'deviceId': r['mac'],
+                    'match': f"ether,dl_src={mac}",
+                    'action': f"ALLOW:VLAN={r['vlan']}",
+                    'priority': 100
+                })
+            else:
+                flows.append({
+                    'id': f'f{idx}',
+                    'deviceId': r['mac'],
+                    'match': f"ether,dl_src={mac}",
+                    'action': "DROP",
+                    'priority': 90
+                })
+        return jsonify(flows)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/devices', methods=['POST'])
 def add_device():
