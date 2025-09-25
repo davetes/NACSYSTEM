@@ -43,11 +43,24 @@ const theme = createTheme({
 
 function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [drawerCollapsed, setDrawerCollapsed] = useState(false);
+  const [drawerCollapsed, setDrawerCollapsed] = useState(() => {
+    try { return localStorage.getItem('drawer_collapsed') === 'true'; } catch { return false; }
+  });
+  const [drawerVisible, setDrawerVisible] = useState(() => {
+    try { return localStorage.getItem('drawer_visible') !== 'false'; } catch { return true; }
+  });
   const isMdUp = useMediaQuery('(min-width:900px)');
 
   const drawerWidth = 240;
   const drawerCollapsedWidth = 72;
+
+  // persist drawer preferences
+  React.useEffect(() => {
+    try { localStorage.setItem('drawer_collapsed', String(drawerCollapsed)); } catch {}
+  }, [drawerCollapsed]);
+  React.useEffect(() => {
+    try { localStorage.setItem('drawer_visible', String(drawerVisible)); } catch {}
+  }, [drawerVisible]);
 
   // Auth state derived from localStorage
   const isAuthed = useMemo(() => {
@@ -84,8 +97,14 @@ function App() {
             edge="start"
             onClick={() => {
               if (isMdUp) {
-                setDrawerCollapsed((v) => !v);
+                // Desktop: if hidden, show; if shown, toggle collapsed
+                setDrawerVisible((vis) => {
+                  if (!vis) return true;
+                  setDrawerCollapsed((v) => !v);
+                  return true;
+                });
               } else {
+                // Mobile: open temporary drawer
                 setMobileOpen(true);
               }
             }}
@@ -112,7 +131,7 @@ function App() {
         </Drawer>
       )}
       {/* Permanent drawer for md and up */}
-      {isMdUp && (
+      {isMdUp && drawerVisible && (
         <Drawer
           variant="permanent"
           sx={{
@@ -132,7 +151,7 @@ function App() {
           {drawerContent}
         </Drawer>
       )}
-      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { xs: 0, md: `${drawerCollapsed ? drawerCollapsedWidth : drawerWidth}px` }, transition: (theme) => theme.transitions.create('margin-left', { duration: theme.transitions.duration.shortest }) }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { xs: 0, md: drawerVisible ? `${drawerCollapsed ? drawerCollapsedWidth : drawerWidth}px` : 0 }, transition: (theme) => theme.transitions.create('margin-left', { duration: theme.transitions.duration.shortest }) }}>
         <Toolbar />
         <Outlet />
       </Box>
@@ -189,6 +208,15 @@ function App() {
         <ListItem button component={Link} to="/policy" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><PolicyIcon /></ListItemIcon>
           {!drawerCollapsed && <ListItemText primary="Policy" />}
+        </ListItem>
+        {/* Drawer controls */}
+        <ListItem button onClick={() => setDrawerCollapsed((v) => !v)} sx={{ px: drawerCollapsed ? 1 : 2, mt: 1 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MenuIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary={drawerCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'} />}
+        </ListItem>
+        <ListItem button onClick={() => setDrawerVisible(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MenuIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Hide Sidebar" />}
         </ListItem>
         <ListItem button component={Link} to="/logout" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2, mt: 1 }}>
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><LogoutIcon /></ListItemIcon>
