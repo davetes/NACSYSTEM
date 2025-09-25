@@ -90,7 +90,7 @@ function App() {
   // Layouts
   const DashboardLayout = () => (
     <>
-      <AppBar position="fixed">
+      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <IconButton
             color="inherit"
