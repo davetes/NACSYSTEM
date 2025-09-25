@@ -10,13 +10,21 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
+
+  const isStrongPassword = (pwd) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\s]).{6,}$/.test(pwd);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // Validate required and strength
     if (!username || !password) {
       setError('Please enter username and password');
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      setPasswordError('Password must be 6+ chars and include a letter, a number, and a special character');
       return;
     }
     setLoading(true);
@@ -86,8 +94,20 @@ export default function Login() {
             label="Password"
             type={showPassword ? 'text' : 'password'}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPassword(v);
+              if (!v) {
+                setPasswordError('');
+              } else if (!isStrongPassword(v)) {
+                setPasswordError('Password must be 6+ chars and include a letter, a number, and a special character');
+              } else {
+                setPasswordError('');
+              }
+            }}
             fullWidth
+            error={Boolean(passwordError)}
+            helperText={passwordError || ' '}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">

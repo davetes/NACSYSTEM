@@ -12,17 +12,27 @@ export default function Register() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
   const navigate = useNavigate();
+
+  const isStrongPassword = (pwd) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\s]).{6,}$/.test(pwd);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setPasswordError('');
+    setConfirmError('');
     if (!username || !password) {
       setError('Please enter username and password');
       return;
     }
+    if (!isStrongPassword(password)) {
+      setPasswordError('Password must be 6+ chars and include a letter, a number, and a special character');
+      return;
+    }
     if (password !== confirm) {
-      setError('Passwords do not match');
+      setConfirmError('Passwords do not match');
       return;
     }
     setLoading(true);
@@ -92,8 +102,25 @@ export default function Register() {
             label="Password"
             type={showPassword ? 'text' : 'password'}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPassword(v);
+              // validate strength live
+              if (!v) {
+                setPasswordError('');
+              } else if (!isStrongPassword(v)) {
+                setPasswordError('Password must be 6+ chars and include a letter, a number, and a special character');
+              } else {
+                setPasswordError('');
+              }
+              // if confirm already typed, re-validate match
+              if (confirm) {
+                setConfirmError(v === confirm ? '' : 'Passwords do not match');
+              }
+            }}
             fullWidth
+            error={Boolean(passwordError)}
+            helperText={passwordError || ' '}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -119,8 +146,14 @@ export default function Register() {
             label="Confirm Password"
             type={showConfirm ? 'text' : 'password'}
             value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setConfirm(v);
+              setConfirmError(v === password ? '' : 'Passwords do not match');
+            }}
             fullWidth
+            error={Boolean(confirmError)}
+            helperText={confirmError || ' '}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
