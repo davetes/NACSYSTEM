@@ -41,9 +41,11 @@ const theme = createTheme({
 
 function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [drawerCollapsed, setDrawerCollapsed] = useState(false);
   const isMdUp = useMediaQuery('(min-width:900px)');
 
   const drawerWidth = 240;
+  const drawerCollapsedWidth = 72;
 
   // Auth state derived from localStorage
   const isAuthed = useMemo(() => {
@@ -75,11 +77,21 @@ function App() {
     <>
       <AppBar position="fixed">
         <Toolbar>
-          {!isMdUp && (
-            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 2 }} aria-label="open drawer">
-              <MenuIcon />
-            </IconButton>
-          )}
+          <IconButton
+            color="inherit"
+            edge="start"
+            onClick={() => {
+              if (isMdUp) {
+                setDrawerCollapsed((v) => !v);
+              } else {
+                setMobileOpen(true);
+              }
+            }}
+            sx={{ mr: 2 }}
+            aria-label="toggle drawer"
+          >
+            <MenuIcon />
+          </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className={"text-white"}>
             PulseNet
           </Typography>
@@ -101,12 +113,24 @@ function App() {
       {isMdUp && (
         <Drawer
           variant="permanent"
-          sx={{ width: drawerWidth, flexShrink: 0, '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' } }}
+          sx={{
+            width: drawerCollapsed ? drawerCollapsedWidth : drawerWidth,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerCollapsed ? drawerCollapsedWidth : drawerWidth,
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+              transition: (theme) => theme.transitions.create('width', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.shortest,
+              }),
+            },
+          }}
         >
           {drawerContent}
         </Drawer>
       )}
-      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { xs: 0, md: `${drawerWidth}px` } }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, ml: { xs: 0, md: `${drawerCollapsed ? drawerCollapsedWidth : drawerWidth}px` }, transition: (theme) => theme.transitions.create('margin-left', { duration: theme.transitions.duration.shortest }) }}>
         <Toolbar />
         <Outlet />
       </Box>
@@ -128,41 +152,41 @@ function App() {
     <>
       <Toolbar />
       <List>
-        <ListItem button component={Link} to="/" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><DashboardIcon /></ListItemIcon>
-          <ListItemText primary="Dashboard" />
+        <ListItem button component={Link} to="/" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><DashboardIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Dashboard" />}
         </ListItem>
-        <ListItem button component={Link} to="/sdn" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><RuleIcon /></ListItemIcon>
-          <ListItemText primary="SDN Validate" />
+        <ListItem button component={Link} to="/sdn" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><RuleIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="SDN Validate" />}
         </ListItem>
-        <ListItem button component={Link} to="/topology" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><LanIcon /></ListItemIcon>
-          <ListItemText primary="Topology" />
+        <ListItem button component={Link} to="/topology" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><LanIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Topology" />}
         </ListItem>
-        <ListItem button component={Link} to="/intents" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><RouteIcon /></ListItemIcon>
-          <ListItemText primary="Intents" />
+        <ListItem button component={Link} to="/intents" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><RouteIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Intents" />}
         </ListItem>
-        <ListItem button component={Link} to="/mac" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><SettingsEthernetIcon /></ListItemIcon>
-          <ListItemText primary="MAC Addresses" />
+        <ListItem button component={Link} to="/mac" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><SettingsEthernetIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="MAC Addresses" />}
         </ListItem>
-        <ListItem button component={Link} to="/flows" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><SwapHorizIcon /></ListItemIcon>
-          <ListItemText primary="Flows" />
+        <ListItem button component={Link} to="/flows" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><SwapHorizIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Flows" />}
         </ListItem>
-        <ListItem button component={Link} to="/health" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><MonitorHeartIcon /></ListItemIcon>
-          <ListItemText primary="Health" />
+        <ListItem button component={Link} to="/health" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MonitorHeartIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Health" />}
         </ListItem>
-        <ListItem button component={Link} to="/logs" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><ArticleIcon /></ListItemIcon>
-          <ListItemText primary="Logs" />
+        <ListItem button component={Link} to="/logs" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><ArticleIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Logs" />}
         </ListItem>
-        <ListItem button component={Link} to="/policy" onClick={() => setMobileOpen(false)}>
-          <ListItemIcon><PolicyIcon /></ListItemIcon>
-          <ListItemText primary="Policy" />
+        <ListItem button component={Link} to="/policy" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><PolicyIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Policy" />}
         </ListItem>
       </List>
     </>
