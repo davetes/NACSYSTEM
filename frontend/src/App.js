@@ -11,6 +11,8 @@ import ArticleIcon from '@mui/icons-material/Article';
 import MenuIcon from '@mui/icons-material/Menu';
 import Policy from './components/Policy';
 import PolicyIcon from '@mui/icons-material/Policy';
+import Logout from './components/Logout';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 // SDN UI components
 import TopologyGraph from './components/TopologyGraph';
@@ -188,6 +190,10 @@ function App() {
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><PolicyIcon /></ListItemIcon>
           {!drawerCollapsed && <ListItemText primary="Policy" />}
         </ListItem>
+        <ListItem button component={Link} to="/logout" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2, mt: 1 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><LogoutIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="Logout" />}
+        </ListItem>
       </List>
     </>
   );
@@ -214,6 +220,7 @@ function App() {
             <Route path="/health" element={<HealthPanel />} />
             <Route path="/logs" element={<LogsViewer />} />
             <Route path="/policy" element={<Policy />} />
+            <Route path="/logout" element={<Logout />} />
           </Route>
 
           {/* Fallback */}
