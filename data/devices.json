@@ -1,0 +1,14 @@
+[
+  {
+    "mac": "AA-BB-CC-DD-EE-FF",
+    "name": "Device 1",
+    "authorized": true,
+    "vlan": 10
+  },
+  {
+    "mac": "11-22-33-44-55-66",
+    "name": "Device 2",
+    "authorized": true,
+    "vlan": 20
+  }
+]

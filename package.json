@@ -1,0 +1,16 @@
+{
+    "name": "my-project",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "install:frontend": "npm install --prefix frontend",
+        "install:backend": "cd backend && python -m venv venv && .\\venv\\Scripts\\pip.exe install -r requirements.txt",
+        "install:all": "npm run install:backend && npm run install:frontend",
+        "dev": "concurrently \"cd backend && .\\venv\\Scripts\\python.exe app.py\" \"npm start --prefix frontend\"",
+        "start:backend": "cd backend && .\\venv\\Scripts\\python.exe app.py",
+        "start:frontend": "npm start --prefix frontend"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}
