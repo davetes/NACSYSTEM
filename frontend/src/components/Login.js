@@ -20,7 +20,7 @@ export default function Login() {
     setError('');
     // Validate required and strength
     if (!username || !password) {
-      setError('Please enter username and password');
+      setError('Please enter your credentials');
       return;
     }
     if (!isStrongPassword(password)) {
@@ -35,11 +35,18 @@ export default function Login() {
         localStorage.setItem('auth_token', token);
         navigate('/');
       } else {
-        setError('Login failed: no token returned');
+        // Generic message, do not leak internal details
+        setError('Unable to sign in. Please try again.');
       }
     } catch (err) {
-      const msg = err?.response?.data?.error || 'Login failed';
-      setError(msg);
+      const status = err?.response?.status;
+      if (status === 401 || status === 400) {
+        // Generic invalid credentials message
+        setError('Invalid username or password');
+      } else {
+        // Generic fallback without leaking details
+        setError('Unable to sign in. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -107,7 +114,6 @@ export default function Login() {
             }}
             fullWidth
             error={Boolean(passwordError)}
-            helperText={passwordError || ' '}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">

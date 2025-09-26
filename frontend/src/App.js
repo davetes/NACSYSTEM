@@ -13,6 +13,10 @@ import Policy from './components/Policy';
 import PolicyIcon from '@mui/icons-material/Policy';
 import Logout from './components/Logout';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
+import Profile from './components/Profile';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 // SDN UI components
 import TopologyGraph from './components/TopologyGraph';
@@ -209,6 +213,10 @@ function App() {
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><PolicyIcon /></ListItemIcon>
           {!drawerCollapsed && <ListItemText primary="Policy" />}
         </ListItem>
+        <ListItem button component={Link} to="/profile" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
+          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><AccountCircleIcon /></ListItemIcon>
+          {!drawerCollapsed && <ListItemText primary="My Profile" />}
+        </ListItem>
         {/* Drawer controls */}
         <ListItem button onClick={() => setDrawerCollapsed((v) => !v)} sx={{ px: drawerCollapsed ? 1 : 2, mt: 1 }}>
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MenuIcon /></ListItemIcon>
@@ -235,6 +243,8 @@ function App() {
           <Route element={<AuthOnly><AuthLayout /></AuthOnly>}>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
 
           {/* Dashboard and app pages, protected */}
@@ -248,6 +258,7 @@ function App() {
             <Route path="/health" element={<HealthPanel />} />
             <Route path="/logs" element={<LogsViewer />} />
             <Route path="/policy" element={<Policy />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/logout" element={<Logout />} />
           </Route>
 
