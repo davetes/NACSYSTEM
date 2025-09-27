@@ -1,6 +1,11 @@
 from flask import Flask, request, jsonify
 import os
 from datetime import datetime, timedelta
+import re
+import secrets
+import smtplib
+import ssl
+from email.message import EmailMessage
 from dotenv import load_dotenv
 from flask_cors import CORS
 import jwt
@@ -39,7 +44,9 @@ def get_db_connection_legacy():
 def check_api_key():
     # Allow unauthenticated access to auth endpoints and health/static assets
     open_paths = (
-        '/auth/login', '/auth/register', '/auth/me', '/api/health', '/api/alerts', '/api/topology', '/api/flows'
+        '/auth/login', '/auth/register', '/auth/me',
+        '/auth/forgot-password', '/auth/reset-password',
+        '/api/health', '/api/alerts', '/api/topology', '/api/flows'
     )
     if request.path in open_paths or request.method == 'OPTIONS':
         return None
@@ -93,6 +100,143 @@ def auth_register():
     finally:
         conn.close()
 
+def _send_email(to_email: str, subject: str, body_text: str) -> None:
+    """Send an email using Gmail SMTP. Requires env GMAIL_USER and GMAIL_APP_PASSWORD."""
+    gmail_user = os.getenv('GMAIL_USER')
+    gmail_pass = os.getenv('GMAIL_APP_PASSWORD')
+    if not gmail_user or not gmail_pass:
+        raise RuntimeError('Email not configured: set GMAIL_USER and GMAIL_APP_PASSWORD')
+    msg = EmailMessage()
+    msg['From'] = gmail_user
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    msg.set_content(body_text)
+    context = ssl.create_default_context()
+    last_err = None
+    # Try SSL first (465)
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context, timeout=15) as server:
+            server.login(gmail_user, gmail_pass)
+            server.send_message(msg)
+            return
+    except Exception as e:
+        last_err = e
+    # Fallback to STARTTLS on 587
+    try:
+        with smtplib.SMTP('smtp.gmail.com', 587, timeout=15) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(gmail_user, gmail_pass)
+            server.send_message(msg)
+            return
+    except Exception as e2:
+        raise RuntimeError(f"SMTP send failed (SSL and STARTTLS). SSL error: {last_err}; STARTTLS error: {e2}")
+
+def _generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
+
+def _is_strong_password(pwd: str) -> bool:
+    return bool(re.search(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\s]).{6,}$", pwd or ''))
+
+@app.route('/auth/forgot-password', methods=['POST'])
+def auth_forgot_password():
+    data = request.json or {}
+    identifier = (data.get('identifier') or '').strip().lower()
+    if not identifier:
+        # Always respond generic
+        return jsonify({'message': 'If an account exists, a reset link has been sent.'})
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        # Look up by email first, then username
+        cur.execute("SELECT id, username, email FROM users WHERE lower(email) = ?", (identifier,))
+        row = cur.fetchone()
+        if not row:
+            cur.execute("SELECT id, username, email FROM users WHERE lower(username) = ?", (identifier,))
+            row = cur.fetchone()
+        if row and row['email']:
+            user_id = row['id']
+            email = row['email']
+            token = _generate_reset_token()
+            expires_at = (datetime.utcnow() + timedelta(hours=1)).isoformat() + 'Z'
+            cur.execute(
+                "INSERT INTO reset_tokens (user_id, token, expires_at, used, created_at) VALUES (?, ?, ?, 0, datetime('now'))",
+                (user_id, token, expires_at)
+            )
+            conn.commit()
+            # Build reset URL
+            base_url = os.getenv('FRONTEND_BASE_URL', 'http://localhost:3000')
+            reset_link = f"{base_url}/reset-password?token={token}"
+            dev_mode = os.getenv('EMAIL_DEV_MODE', '0') == '1'
+            if dev_mode:
+                # In dev mode, include the link in response for easier testing
+                try:
+                    print(f"[DEV] Password reset link for {email}: {reset_link}")
+                except Exception:
+                    pass
+                return jsonify({'message': 'If an account exists, a reset link has been sent.', 'dev_reset_link': reset_link})
+            else:
+                try:
+                    _send_email(
+                        to_email=email,
+                        subject='PulseNet password reset',
+                        body_text=(
+                            f"Hello {row['username']},\n\n"
+                            f"We received a request to reset your PulseNet password.\n"
+                            f"Use the link below to set a new password. This link expires in 1 hour.\n\n"
+                            f"{reset_link}\n\n"
+                            f"If you did not request this, you can safely ignore this email.\n"
+                        ),
+                    )
+                except Exception as e:
+                    # Log link and error message to server logs if email sending fails
+                    try:
+                        print(f"[WARN] Email send failed: {e}. Password reset link for {email}: {reset_link}")
+                    except Exception:
+                        pass
+        # Always respond generic
+        return jsonify({'message': 'If an account exists, a reset link has been sent.'})
+    except Exception as e:
+        # Still keep response generic
+        return jsonify({'message': 'If an account exists, a reset link has been sent.'})
+    finally:
+        conn.close()
+
+@app.route('/auth/reset-password', methods=['POST'])
+def auth_reset_password():
+    data = request.json or {}
+    token = (data.get('token') or '').strip()
+    password = data.get('password') or ''
+    if not token or not password:
+        return jsonify({'error': 'invalid request'}), 400
+    if not _is_strong_password(password):
+        return jsonify({'error': 'weak password'}), 400
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT user_id, expires_at, used FROM reset_tokens WHERE token = ?", (token,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'error': 'invalid token'}), 400
+        # Check expiry and used
+        try:
+            exp = datetime.fromisoformat(row['expires_at'].replace('Z', ''))
+        except Exception:
+            exp = datetime.utcnow() - timedelta(seconds=1)
+        if row['used'] or datetime.utcnow() > exp:
+            return jsonify({'error': 'token expired'}), 400
+        user_id = row['user_id']
+        pwd_hash = generate_password_hash(password)
+        cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pwd_hash, user_id))
+        cur.execute("UPDATE reset_tokens SET used = 1 WHERE token = ?", (token,))
+        conn.commit()
+        return jsonify({'message': 'password updated'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/auth/login', methods=['POST'])
 def auth_login():
     data = request.json or {}
@@ -108,7 +252,7 @@ def auth_login():
         if not row or not check_password_hash(row['password_hash'], password):
             return jsonify({'error': 'invalid credentials'}), 401
         token = _generate_token(row['id'], username)
-        return jsonify({'token': token, 'user': {'id': row['id'], 'username': username, 'email': row.get('email')}})
+        return jsonify({'token': token, 'user': {'id': row['id'], 'username': username, 'email': row['email']}})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

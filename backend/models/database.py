@@ -73,6 +73,23 @@ def init_db() -> None:
             )
             """
         )
+        # Password reset tokens table
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS reset_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                expires_at TEXT NOT NULL,
+                used INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON reset_tokens(user_id)"
+        )
         conn.commit()
     finally:
         conn.close()

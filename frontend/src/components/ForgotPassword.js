@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Paper, Stack, Typography, TextField, Button, Alert, CircularProgress } from '@mui/material';
+import { Box, Paper, Stack, Typography, TextField, Button, Alert, CircularProgress, Link as MuiLink } from '@mui/material';
 import api from '../api';
 
 export default function ForgotPassword() {
@@ -7,6 +7,7 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [devLink, setDevLink] = useState('');
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -18,7 +19,9 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { identifier: emailOrUsername });
+      const resp = await api.post('/auth/forgot-password', { identifier: emailOrUsername });
+      const link = resp?.data?.dev_reset_link;
+      if (link) setDevLink(link);
       setSuccess('If an account exists, a reset link has been sent. Please check your email.');
     } catch (err) {
       // Always generic to avoid user enumeration
@@ -40,6 +43,12 @@ export default function ForgotPassword() {
         <Stack spacing={2} component="form" onSubmit={onSubmit}>
           {error && <Alert severity="error">{error}</Alert>}
           {success && <Alert severity="success">{success}</Alert>}
+          {devLink && (
+            <Alert severity="info">
+              Development mode: use this link to reset your password: {" "}
+              <MuiLink href={devLink} target="_blank" rel="noreferrer">{devLink}</MuiLink>
+            </Alert>
+          )}
           <TextField
             label="Email or Username"
             value={emailOrUsername}
