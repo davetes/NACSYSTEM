@@ -62,24 +62,32 @@ def check_api_key():
 def auth_register():
     data = request.json or {}
     username = (data.get('username') or '').strip()
+    email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
-    if not username or not password:
-        return jsonify({'error': 'username and password are required'}), 400
+    if not username or not password or not email:
+        return jsonify({'error': 'username, email and password are required'}), 400
+    # Very basic email validation
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({'error': 'invalid email'}), 400
     conn = get_db_connection()
     try:
         cur = conn.cursor()
         cur.execute("SELECT id FROM users WHERE username = ?", (username,))
         if cur.fetchone():
             return jsonify({'error': 'username already exists'}), 409
+        # Ensure email uniqueness
+        cur.execute("SELECT id FROM users WHERE email = ?", (email,))
+        if cur.fetchone():
+            return jsonify({'error': 'email already exists'}), 409
         pwd_hash = generate_password_hash(password)
         cur.execute(
-            "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, datetime('now'))",
-            (username, pwd_hash)
+            "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, datetime('now'))",
+            (username, email, pwd_hash)
         )
         conn.commit()
         user_id = cur.lastrowid
         token = _generate_token(user_id, username)
-        return jsonify({'token': token, 'user': {'id': user_id, 'username': username}})
+        return jsonify({'token': token, 'user': {'id': user_id, 'username': username, 'email': email}})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -95,12 +103,12 @@ def auth_login():
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, password_hash FROM users WHERE username = ?", (username,))
+        cur.execute("SELECT id, password_hash, email FROM users WHERE username = ?", (username,))
         row = cur.fetchone()
         if not row or not check_password_hash(row['password_hash'], password):
             return jsonify({'error': 'invalid credentials'}), 401
         token = _generate_token(row['id'], username)
-        return jsonify({'token': token, 'user': {'id': row['id'], 'username': username}})
+        return jsonify({'token': token, 'user': {'id': row['id'], 'username': username, 'email': row.get('email')}})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -115,7 +123,21 @@ def auth_me():
     data = _verify_token(token)
     if not data:
         return jsonify({'error': 'Unauthorized'}), 401
-    return jsonify({'user': {'id': data.get('sub'), 'username': data.get('username')}})
+    # Optionally hydrate email by querying DB
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT email FROM users WHERE id = ?", (data.get('sub'),))
+        row = cur.fetchone()
+        email = row['email'] if row and 'email' in row.keys() else None
+    except Exception:
+        email = None
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+    return jsonify({'user': {'id': data.get('sub'), 'username': data.get('username'), 'email': email}})
 
 @app.route('/devices', methods=['GET'])
 def get_devices():

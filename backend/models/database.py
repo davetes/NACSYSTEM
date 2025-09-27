@@ -47,10 +47,21 @@ def init_db() -> None:
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
+                email TEXT,
                 password_hash TEXT NOT NULL,
                 created_at TEXT
             )
             """
+        )
+        # Runtime migration: ensure email column exists and is uniquely indexed
+        cur.execute("PRAGMA table_info(users)")
+        columns = [row[1] for row in cur.fetchall()]
+        if 'email' not in columns:
+            # Add email column; uniqueness will be enforced via an index below
+            cur.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        # Create a unique index on email to prevent duplicates (allows NULLs for legacy rows)
+        cur.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)"
         )
         # Policies table; criteria stored as JSON string
         cur.execute(

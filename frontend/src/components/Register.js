@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Button, TextField, Typography, Alert, Stack, Link as MuiLink, Paper, InputAdornment, IconButton, CircularProgress } from '@mui/material';
-import { PersonOutline, LockOutlined, Visibility, VisibilityOff } from '@mui/icons-material';
+import { PersonOutline, LockOutlined, Visibility, VisibilityOff, MailOutline } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
@@ -8,23 +8,30 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [confirmError, setConfirmError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const navigate = useNavigate();
 
   const isStrongPassword = (pwd) => /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^\w\s]).{6,}$/.test(pwd);
+  const isValidEmail = (val) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(val);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setPasswordError('');
     setConfirmError('');
-    if (!username || !password) {
-      setError('Please enter username and password');
+    if (!username || !email || !password) {
+      setError('Please enter username, email and password');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setEmailError('Please enter a valid email');
       return;
     }
     if (!isStrongPassword(password)) {
@@ -37,7 +44,7 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      const resp = await api.post('/auth/register', { username, password });
+      const resp = await api.post('/auth/register', { username, email, password });
       const token = resp.data?.token;
       if (token) {
         localStorage.setItem('auth_token', token);
@@ -82,6 +89,31 @@ export default function Register() {
         </Typography>
         <Stack spacing={2} component="form" onSubmit={onSubmit}>
           {error && <Alert severity="error">{error}</Alert>}
+
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => {
+              const v = e.target.value;
+              setEmail(v);
+              if (!v) {
+                setEmailError('');
+              } else {
+                setEmailError(isValidEmail(v) ? '' : 'Please enter a valid email');
+              }
+            }}
+            fullWidth
+            error={Boolean(emailError)}
+            helperText={emailError || ' '}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <MailOutline fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
           <TextField
             label="Username"
