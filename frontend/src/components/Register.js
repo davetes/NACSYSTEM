@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography, Alert, Stack, Link as MuiLink, Paper, InputAdornment, IconButton, CircularProgress } from '@mui/material';
+import { Button, TextField, Typography, Alert, Stack, Link as MuiLink, InputAdornment, IconButton, CircularProgress } from '@mui/material';
 import { PersonOutline, LockOutlined, Visibility, VisibilityOff, MailOutline } from '@mui/icons-material';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
@@ -61,163 +61,138 @@ export default function Register() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 2,
-        background: 'linear-gradient(135deg, #0f172a 0%, #111827 40%, #1f2937 100%)',
-      }}
-    >
-      <Paper elevation={10} sx={{ width: '100%', maxWidth: 480, p: 4, borderRadius: 3 }}>
-        <Typography
-          variant="h4"
-          fontWeight={800}
-          gutterBottom
-          sx={{
-            background: 'linear-gradient(90deg, #38bdf8, #22c55e)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+    <>
+      <Typography variant="h5" fontWeight={800} gutterBottom>
+        Create your account
+      </Typography>
+      <Stack spacing={2} component="form" onSubmit={onSubmit} sx={{ mt: 1 }}>
+        {error && <Alert severity="error">{error}</Alert>}
+
+        <TextField
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => {
+            const v = e.target.value;
+            setEmail(v);
+            if (!v) {
+              setEmailError('');
+            } else {
+              setEmailError(isValidEmail(v) ? '' : 'Please enter a valid email');
+            }
           }}
-        >
-          Create your account
+          fullWidth
+          error={Boolean(emailError)}
+          helperText={emailError || ' '}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <MailOutline fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <TextField
+          label="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoFocus
+          fullWidth
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PersonOutline fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <TextField
+          label="Password"
+          type={showPassword ? 'text' : 'password'}
+          value={password}
+          onChange={(e) => {
+            const v = e.target.value;
+            setPassword(v);
+            if (!v) {
+              setPasswordError('');
+            } else if (!isStrongPassword(v)) {
+              setPasswordError('Password must be 6+ chars and include a letter, a number, and a special character');
+            } else {
+              setPasswordError('');
+            }
+            if (confirm) {
+              setConfirmError(v === confirm ? '' : 'Passwords do not match');
+            }
+          }}
+          fullWidth
+          error={Boolean(passwordError)}
+          helperText={passwordError || ' '}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockOutlined fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={() => setShowPassword((s) => !s)}
+                  edge="end"
+                  size="small"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <TextField
+          label="Confirm Password"
+          type={showConfirm ? 'text' : 'password'}
+          value={confirm}
+          onChange={(e) => {
+            const v = e.target.value;
+            setConfirm(v);
+            setConfirmError(v === password ? '' : 'Passwords do not match');
+          }}
+          fullWidth
+          error={Boolean(confirmError)}
+          helperText={confirmError || ' '}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <LockOutlined fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle confirm password visibility"
+                  onClick={() => setShowConfirm((s) => !s)}
+                  edge="end"
+                  size="small"
+                >
+                  {showConfirm ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ py: 1.1 }}>
+          {loading && <CircularProgress color="inherit" size={18} sx={{ mr: 1 }} />}
+          {loading ? 'Creating account...' : 'Register'}
+        </Button>
+
+        <Typography variant="body2">
+          Already have an account? <MuiLink component={Link} to="/login">Sign in</MuiLink>
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Join PulseNet to manage your network seamlessly
-        </Typography>
-        <Stack spacing={2} component="form" onSubmit={onSubmit}>
-          {error && <Alert severity="error">{error}</Alert>}
-
-          <TextField
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              const v = e.target.value;
-              setEmail(v);
-              if (!v) {
-                setEmailError('');
-              } else {
-                setEmailError(isValidEmail(v) ? '' : 'Please enter a valid email');
-              }
-            }}
-            fullWidth
-            error={Boolean(emailError)}
-            helperText={emailError || ' '}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <MailOutline fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoFocus
-            fullWidth
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <PersonOutline fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => {
-              const v = e.target.value;
-              setPassword(v);
-              // validate strength live
-              if (!v) {
-                setPasswordError('');
-              } else if (!isStrongPassword(v)) {
-                setPasswordError('Password must be 6+ chars and include a letter, a number, and a special character');
-              } else {
-                setPasswordError('');
-              }
-              // if confirm already typed, re-validate match
-              if (confirm) {
-                setConfirmError(v === confirm ? '' : 'Passwords do not match');
-              }
-            }}
-            fullWidth
-            error={Boolean(passwordError)}
-            helperText={passwordError || ' '}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LockOutlined fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={() => setShowPassword((s) => !s)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            label="Confirm Password"
-            type={showConfirm ? 'text' : 'password'}
-            value={confirm}
-            onChange={(e) => {
-              const v = e.target.value;
-              setConfirm(v);
-              setConfirmError(v === password ? '' : 'Passwords do not match');
-            }}
-            fullWidth
-            error={Boolean(confirmError)}
-            helperText={confirmError || ' '}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LockOutlined fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle confirm password visibility"
-                    onClick={() => setShowConfirm((s) => !s)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showConfirm ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <Button type="submit" variant="contained" size="large" disabled={loading} sx={{ py: 1.25 }}>
-            {loading && <CircularProgress color="inherit" size={18} sx={{ mr: 1 }} />}
-            {loading ? 'Creating account...' : 'Register'}
-          </Button>
-
-          <Typography variant="body2">
-            Already have an account? <MuiLink component={Link} to="/login">Sign in</MuiLink>
-          </Typography>
-        </Stack>
-      </Paper>
-    </Box>
+      </Stack>
+    </>
   );
 }
 
