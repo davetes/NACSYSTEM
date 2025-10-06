@@ -53,12 +53,16 @@ def init_db() -> None:
             )
             """
         )
-        # Runtime migration: ensure email column exists and is uniquely indexed
+        # Runtime migration: ensure email, display_name, avatar_url columns exist and indexes as needed
         cur.execute("PRAGMA table_info(users)")
         columns = [row[1] for row in cur.fetchall()]
         if 'email' not in columns:
             # Add email column; uniqueness will be enforced via an index below
             cur.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        if 'display_name' not in columns:
+            cur.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+        if 'avatar_url' not in columns:
+            cur.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT")
         # Create a unique index on email to prevent duplicates (allows NULLs for legacy rows)
         cur.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique ON users(email)"

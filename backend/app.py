@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
 from datetime import datetime, timedelta
 import re
@@ -11,6 +11,7 @@ from flask_cors import CORS
 import jwt
 from werkzeug.security import generate_password_hash, check_password_hash
 from models.database import get_db_connection, init_db, seed_db
+from werkzeug.utils import secure_filename
 from sdn.control_plane import control
 from models.policy import list_policies, upsert_policy, delete_policy
 
@@ -20,6 +21,9 @@ CORS(app)
 API_KEY = os.getenv('API_KEY')
 JWT_SECRET = os.getenv('JWT_SECRET', 'change_this_dev_secret')
 JWT_ALG = 'HS256'
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', os.path.abspath(os.path.join(os.path.dirname(__file__), 'uploads')))
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def _generate_token(user_id: int, username: str) -> str:
     payload = {
@@ -361,6 +365,78 @@ def auth_me():
         except Exception:
             pass
     return jsonify({'user': {'id': data.get('sub'), 'username': data.get('username'), 'email': email}})
+
+# --- Profile Endpoints ---
+@app.route('/profile/me', methods=['GET'])
+def profile_me():
+    auth_user = request.environ.get('auth.user') or {}
+    user_id = auth_user.get('sub')
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT username, email, display_name, avatar_url FROM users WHERE id = ?", (user_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({'error': 'user not found'}), 404
+        return jsonify({
+            'username': row['username'],
+            'email': row['email'],
+            'displayName': row['display_name'] if 'display_name' in row.keys() else None,
+            'avatarUrl': row['avatar_url'] if 'avatar_url' in row.keys() else None,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/profile/update', methods=['POST'])
+def profile_update():
+    auth_user = request.environ.get('auth.user') or {}
+    user_id = auth_user.get('sub')
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.json or {}
+    display_name = (data.get('displayName') or '').strip()
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET display_name = ? WHERE id = ?", (display_name, user_id))
+        conn.commit()
+        return jsonify({'message': 'profile updated'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/profile/avatar', methods=['POST'])
+def profile_avatar():
+    auth_user = request.environ.get('auth.user') or {}
+    user_id = auth_user.get('sub')
+    if not user_id:
+        return jsonify({'error': 'Unauthorized'}), 401
+    if 'avatar' not in request.files:
+        return jsonify({'error': 'avatar file required'}), 400
+    f = request.files['avatar']
+    if f.filename == '':
+        return jsonify({'error': 'empty filename'}), 400
+    filename = secure_filename(f"u{user_id}_" + f.filename)
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    f.save(save_path)
+    avatar_url = f"/uploads/{filename}"
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE users SET avatar_url = ? WHERE id = ?", (avatar_url, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'avatarUrl': avatar_url})
+
+@app.route('/uploads/<path:filename>', methods=['GET'])
+def serve_upload(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/devices', methods=['GET'])
 def get_devices():
