@@ -167,8 +167,8 @@ function App() {
   const AuthLayout = () => (
     <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2,
                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0ea5e9 100%)' }}>
-      <Container maxWidth="sm">
-        <Paper elevation={12} sx={{ p: 4, borderRadius: 3, backdropFilter: 'blur(6px)' }}>
+      <Container maxWidth="xs">
+        <Paper elevation={12} sx={{ p: 3, borderRadius: 3, backdropFilter: 'blur(6px)', maxWidth: 380, mx: 'auto', minHeight: 420 }}>
           <Outlet />
         </Paper>
       </Container>
