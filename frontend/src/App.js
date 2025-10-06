@@ -220,10 +220,6 @@ function App() {
           {!drawerCollapsed && <ListItemText primary="My Profile" />}
         </ListItem>
         {/* Drawer controls */}
-        <ListItem button onClick={() => setDrawerCollapsed((v) => !v)} sx={{ px: drawerCollapsed ? 1 : 2, mt: 1 }}>
-          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MenuIcon /></ListItemIcon>
-          {!drawerCollapsed && <ListItemText primary={drawerCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'} />}
-        </ListItem>
         <ListItem button onClick={() => setDrawerVisible(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MenuIcon /></ListItemIcon>
           {!drawerCollapsed && <ListItemText primary="Hide Sidebar" />}
