@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, Navigate, Outlet } from 'react-router-dom';
 import Dashboard from './components/Dashboard';
 import SDNValidate from './components/SDNValidate';
 import LogsViewer from './components/LogsViewer';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { CssBaseline, Drawer, List, ListItem, ListItemIcon, ListItemText, Box, Toolbar, AppBar, Typography, IconButton, useMediaQuery, Container, Paper } from '@mui/material';
+import { CssBaseline, Drawer, List, ListItem, ListItemIcon, ListItemText, Box, Toolbar, AppBar, Typography, IconButton, useMediaQuery, Container, Paper, Avatar, Tooltip, Stack } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import RuleIcon from '@mui/icons-material/Rule';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -17,6 +17,7 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Profile from './components/Profile';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import api from './api';
 
 // SDN UI components
 import TopologyGraph from './components/TopologyGraph';
@@ -120,6 +121,7 @@ function App() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} className={"text-white"}>
             PulseNet
           </Typography>
+          <UserProfileBadge />
         </Toolbar>
       </AppBar>
       {/* Temporary drawer for mobile */}
@@ -233,6 +235,52 @@ function App() {
       </List>
     </>
   );
+
+  // Small top-right badge showing current user's avatar and name
+  function UserProfileBadge() {
+    const [profile, setProfile] = useState({ displayName: '', avatarUrl: '' });
+    const [loading, setLoading] = useState(false);
+
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const resp = await api.get('/profile/me');
+        const data = resp?.data || {};
+        setProfile({
+          displayName: data.displayName || data.username || 'Me',
+          avatarUrl: data.avatarUrl || '',
+        });
+      } catch (e) {
+        // no-op
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      fetchProfile();
+      const handler = () => fetchProfile();
+      window.addEventListener('profile:updated', handler);
+      return () => window.removeEventListener('profile:updated', handler);
+    }, []);
+
+    const initials = (profile.displayName || 'U').trim().slice(0, 2).toUpperCase();
+    return (
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Tooltip title={profile.displayName || 'Profile'}>
+          <IconButton component={Link} to="/profile" color="inherit" size="small">
+            {profile.avatarUrl ? (
+              <Avatar src={profile.avatarUrl} sx={{ width: 34, height: 34 }} />
+            ) : (
+              <Avatar sx={{ width: 34, height: 34 }}>
+                {initials}
+              </Avatar>
+            )}
+          </IconButton>
+        </Tooltip>
+      </Stack>
+    );
+  }
 
   return (
     <ThemeProvider theme={theme}>

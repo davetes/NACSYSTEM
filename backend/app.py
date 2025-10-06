@@ -24,6 +24,7 @@ JWT_ALG = 'HS256'
 UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', os.path.abspath(os.path.join(os.path.dirname(__file__), 'uploads')))
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+BACKEND_BASE_URL = os.getenv('BACKEND_BASE_URL', 'http://localhost:5000')
 
 def _generate_token(user_id: int, username: str) -> str:
     payload = {
@@ -54,7 +55,7 @@ def check_api_key():
     )
     # Allow GET validation without auth for ease of integration (non-mutating)
     open_prefixes = (
-        '/sdn/validate/', '/validate/'
+        '/sdn/validate/', '/validate/', '/uploads/'
     )
     if (
         request.path in open_paths
@@ -380,11 +381,17 @@ def profile_me():
         row = cur.fetchone()
         if not row:
             return jsonify({'error': 'user not found'}), 404
+        # Normalize avatar URL to absolute
+        raw_avatar = row['avatar_url'] if 'avatar_url' in row.keys() else None
+        if raw_avatar and raw_avatar.startswith('/'):
+            avatar_url = f"{BACKEND_BASE_URL}{raw_avatar}"
+        else:
+            avatar_url = raw_avatar
         return jsonify({
             'username': row['username'],
             'email': row['email'],
             'displayName': row['display_name'] if 'display_name' in row.keys() else None,
-            'avatarUrl': row['avatar_url'] if 'avatar_url' in row.keys() else None,
+            'avatarUrl': avatar_url,
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -424,11 +431,13 @@ def profile_avatar():
     filename = secure_filename(f"u{user_id}_" + f.filename)
     save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     f.save(save_path)
-    avatar_url = f"/uploads/{filename}"
+    # Store relative path in DB but return absolute URL in response
+    relative_path = f"/uploads/{filename}"
+    avatar_url = f"{BACKEND_BASE_URL}{relative_path}"
     conn = get_db_connection()
     try:
         cur = conn.cursor()
-        cur.execute("UPDATE users SET avatar_url = ? WHERE id = ?", (avatar_url, user_id))
+        cur.execute("UPDATE users SET avatar_url = ? WHERE id = ?", (relative_path, user_id))
         conn.commit()
     finally:
         conn.close()

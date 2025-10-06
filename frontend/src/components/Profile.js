@@ -54,11 +54,14 @@ export default function Profile() {
         setUploading(true);
         const form = new FormData();
         form.append('avatar', avatarFile);
-        await api.post('/profile/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' }});
+        const resp = await api.post('/profile/avatar', form);
+        const url = resp?.data?.avatarUrl;
+        if (url) setAvatarUrl(url);
       }
       await api.post('/profile/update', { displayName });
       setSuccess('Profile updated');
       setAvatarFile(null);
+      try { window.dispatchEvent(new Event('profile:updated')); } catch {}
     } catch (e) {
       setError('Could not update profile');
     } finally {
