@@ -5,6 +5,7 @@ from utils.logging import log
 from sdn.factory import get_southbound_driver
 from nac_controller import normalize_mac_colon_lower
 from models.policy import find_vlan_for_device
+from sdn.southbound import nbi
 
 
 class SDNControlPlane:
@@ -46,7 +47,7 @@ class SDNControlPlane:
 
         device = self._get_device_by_mac(mac_hyphen_upper)
         if not device:
-            self.driver.block_mac(mac_colon_lower)
+            nbi.quarantine_mac(mac_colon_lower)
             log(f"control_plane: not_found mac={mac_colon_lower} -> blocked")
             return {
                 "mac": mac_hyphen_upper,
@@ -66,10 +67,10 @@ class SDNControlPlane:
         authorized = vlan is not None
 
         if authorized:
-            self.driver.allow_mac_on_vlan(mac_colon_lower, vlan)
+            nbi.permit_mac_on_vlan(mac_colon_lower, vlan)
             log(f"control_plane: allowed mac={mac_colon_lower} vlan={vlan}")
         else:
-            self.driver.block_mac(mac_colon_lower)
+            nbi.quarantine_mac(mac_colon_lower)
             log(f"control_plane: no_vlan mac={mac_colon_lower} -> blocked")
 
         return {

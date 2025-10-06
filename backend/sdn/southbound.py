@@ -53,8 +53,35 @@ class SDNSouthboundDriver(SouthboundDriver):
         log(f"southbound: allow mac={mac_colon_lower} vlan={vlan_id} (noop)")
         return True
 
-
 # Provide a module-level singleton for convenience
 driver = SDNSouthboundDriver()
 
 
+
+class SDNNorthboundInterface:
+    """Northbound Interface (NBI) exposing coarse-grained intent APIs.
+
+    Note: In a full architecture, the NBI typically lives in the control plane
+    and is exposed over REST/RPC to external apps. Here we provide a minimal
+    in-process NBI that delegates to the southbound driver for simplicity.
+    """
+
+    def __init__(self, driver: SouthboundDriver) -> None:
+        self._driver = driver
+
+    def quarantine_mac(self, mac_colon_lower: str) -> bool:
+        """High-level intent: quarantine a device by MAC.
+
+        Current implementation maps directly to a MAC block at the data plane.
+        """
+        log(f"nbi: quarantine mac={mac_colon_lower}")
+        return self._driver.block_mac(mac_colon_lower)
+
+    def permit_mac_on_vlan(self, mac_colon_lower: str, vlan_id: int) -> bool:
+        """High-level intent: allow a device on a specific VLAN."""
+        log(f"nbi: permit mac={mac_colon_lower} vlan={vlan_id}")
+        return self._driver.allow_mac_on_vlan(mac_colon_lower, vlan_id)
+
+
+# Module-level NBI singleton for convenience
+nbi = SDNNorthboundInterface(driver)
