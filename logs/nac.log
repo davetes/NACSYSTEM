@@ -1,0 +1,17 @@
+2025-09-29 19:43:07.574788 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-09-29 19:43:07.577685 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-09-29 19:43:07.580511 - control_plane: not_found mac=aa:bb:cc:dd:ef:ff -> blocked
+2025-09-29 19:47:33.223046 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ff:ff -j DROP
+2025-09-29 19:47:33.226079 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ff:ff -j DROP
+2025-09-29 19:47:33.228083 - control_plane: not_found mac=aa:bb:cc:dd:ff:ff -> blocked
+2025-09-29 19:51:56.619675 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ff:ff -j DROP
+2025-09-29 19:51:56.624004 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ff:ff -j DROP
+2025-09-29 19:51:56.626400 - control_plane: not_found mac=aa:bb:cc:dd:ff:ff -> blocked
+2025-09-29 19:58:20.087834 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:fe -j DROP
+2025-09-29 19:58:20.090299 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:fe -j DROP
+2025-09-29 19:58:20.095819 - control_plane: not_found mac=aa:bb:cc:dd:ef:fe -> blocked
+2025-09-30 10:34:27.224848 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ee:ff -j DROP
+2025-09-30 10:34:27.228985 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ee:ff -j DROP
+2025-09-30 10:34:27.230918 - control_plane: not_found mac=aa:bb:cc:dd:ee:ff -> blocked
+
+

@@ -17,6 +17,8 @@ def upsert_policy(name: str, vlan: int, criteria: Optional[Dict] = None) -> Dict
      criteria = criteria or {}
      conn = get_db_connection()
      try:
+
+        
          cur = conn.cursor()
          cur.execute(
              "INSERT INTO policies (name, vlan, criteria) VALUES (?, ?, ?)\n"

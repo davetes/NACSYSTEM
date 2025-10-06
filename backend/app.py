@@ -45,10 +45,18 @@ def check_api_key():
     # Allow unauthenticated access to auth endpoints and health/static assets
     open_paths = (
         '/auth/login', '/auth/register', '/auth/me',
-        '/auth/forgot-password', '/auth/reset-password',
+        '/auth/forgot-password', '/auth/reset-password', '/auth/change-password',
         '/api/health', '/api/alerts', '/api/topology', '/api/flows'
     )
-    if request.path in open_paths or request.method == 'OPTIONS':
+    # Allow GET validation without auth for ease of integration (non-mutating)
+    open_prefixes = (
+        '/sdn/validate/', '/validate/'
+    )
+    if (
+        request.path in open_paths
+        or request.method == 'OPTIONS'
+        or (request.method == 'GET' and any(request.path.startswith(p) for p in open_prefixes))
+    ):
         return None
     # Accept either X-API-KEY or Bearer token
     api_key = request.headers.get('X-API-KEY')
@@ -230,6 +238,78 @@ def auth_reset_password():
         pwd_hash = generate_password_hash(password)
         cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pwd_hash, user_id))
         cur.execute("UPDATE reset_tokens SET used = 1 WHERE token = ?", (token,))
+        conn.commit()
+        return jsonify({'message': 'password updated'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/auth/change-password', methods=['POST'])
+def auth_change_password():
+    # Requires Authorization: Bearer token (enforced by before_request)
+    auth_user = request.environ.get('auth.user') or {}
+    user_id = auth_user.get('sub')
+    data = request.json or {}
+    # Accept multiple common field names from various UIs
+    old_password = (
+        data.get('oldPassword')
+        or data.get('old_password')
+        or data.get('currentPassword')
+        or data.get('current_password')
+        or ''
+    )
+    new_password = (
+        data.get('newPassword')
+        or data.get('new_password')
+        or data.get('password')  # some forms reuse 'password' for new value
+        or ''
+    )
+    if not new_password:
+        return jsonify({'error': 'new password is required', 'hint': "use 'newPassword' or 'password'"}), 400
+    if not _is_strong_password(new_password):
+        return jsonify({'error': 'weak password'}), 400
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        # Preferred path: JWT present -> use user_id from token
+        if user_id:
+            cur.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({'error': 'user not found'}), 404
+            current_hash = row['password_hash'] if 'password_hash' in row.keys() else row[0]
+            if current_hash:
+                try:
+                    if not old_password or not check_password_hash(current_hash, old_password):
+                        return jsonify({'error': 'invalid current password', 'hint': "include 'currentPassword' or 'oldPassword'"}), 400
+                except Exception:
+                    return jsonify({'error': 'password verification failed'}), 400
+            new_hash = generate_password_hash(new_password)
+            cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, user_id))
+            try:
+                print(f"[INFO] Password changed via JWT for user_id={user_id}")
+            except Exception:
+                pass
+        else:
+            # Fallback path: allow change with explicit username + oldPassword (for API-key based UIs)
+            username = (data.get('username') or data.get('user') or '').strip()
+            if not username:
+                return jsonify({'error': 'Unauthorized', 'hint': 'send Bearer token or include username + oldPassword'}), 401
+            cur.execute("SELECT id, password_hash FROM users WHERE username = ?", (username,))
+            row = cur.fetchone()
+            if not row:
+                return jsonify({'error': 'user not found'}), 404
+            uid = row['id'] if 'id' in row.keys() else row[0]
+            current_hash = row['password_hash'] if 'password_hash' in row.keys() else row[1]
+            if not old_password or not current_hash or not check_password_hash(current_hash, old_password):
+                return jsonify({'error': 'invalid current password'}), 400
+            new_hash = generate_password_hash(new_password)
+            cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_hash, uid))
+            try:
+                print(f"[INFO] Password changed via fallback for username={username} (id={uid})")
+            except Exception:
+                pass
         conn.commit()
         return jsonify({'message': 'password updated'})
     except Exception as e:

@@ -60,6 +60,9 @@ class SDNControlPlane:
         vlan = find_vlan_for_device(username, mac_hyphen_upper)
         if vlan is None and username:
             vlan = self._get_vlan_for_user(username)
+        # Final fallback: respect device's configured VLAN if present
+        if vlan is None and device.get('vlan') is not None:
+            vlan = device.get('vlan')
         authorized = vlan is not None
 
         if authorized:
