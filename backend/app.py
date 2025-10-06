@@ -45,7 +45,7 @@ def check_api_key():
     # Allow unauthenticated access to auth endpoints and health/static assets
     open_paths = (
         '/auth/login', '/auth/register', '/auth/me',
-        '/auth/forgot-password', '/auth/reset-password', '/auth/change-password',
+        '/auth/forgot-password', '/auth/reset-password',
         '/api/health', '/api/alerts', '/api/topology', '/api/flows'
     )
     # Allow GET validation without auth for ease of integration (non-mutating)
@@ -58,18 +58,17 @@ def check_api_key():
         or (request.method == 'GET' and any(request.path.startswith(p) for p in open_prefixes))
     ):
         return None
-    # Accept either X-API-KEY or Bearer token
-    api_key = request.headers.get('X-API-KEY')
-    if api_key == API_KEY and api_key is not None:
-        return None
+    # Prefer Bearer token (sets auth.user) and then fall back to X-API-KEY
     auth_header = request.headers.get('Authorization', '')
     if auth_header.startswith('Bearer '):
         token = auth_header.split(' ', 1)[1].strip()
         data = _verify_token(token)
         if data:
-            # Optionally attach to request context via environ
             request.environ['auth.user'] = data
             return None
+    api_key = request.headers.get('X-API-KEY')
+    if api_key == API_KEY and api_key is not None:
+        return None
     return jsonify({'error': 'Unauthorized'}), 401
 
 # --- Authentication Endpoints ---
