@@ -219,11 +219,7 @@ function App() {
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><AccountCircleIcon /></ListItemIcon>
           {!drawerCollapsed && <ListItemText primary="My Profile" />}
         </ListItem>
-        {/* Drawer controls */}
-        <ListItem button onClick={() => setDrawerVisible(false)} sx={{ px: drawerCollapsed ? 1 : 2 }}>
-          <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><MenuIcon /></ListItemIcon>
-          {!drawerCollapsed && <ListItemText primary="Hide Sidebar" />}
-        </ListItem>
+        {/* Drawer controls (none) */}
         <ListItem button component={Link} to="/logout" onClick={() => setMobileOpen(false)} sx={{ px: drawerCollapsed ? 1 : 2, mt: 1 }}>
           <ListItemIcon sx={{ minWidth: drawerCollapsed ? 0 : 40, justifyContent: 'center' }}><LogoutIcon /></ListItemIcon>
           {!drawerCollapsed && <ListItemText primary="Logout" />}
