@@ -10,7 +10,7 @@ An SDN-oriented Network Access Control (NAC) system that separates the control p
 To enhance network security by validating devices and users, assigning VLANs, blocking unauthorized access, and delivering a comprehensive admin dashboard for real-time monitoring and management.
 
 ### System Description
-This SDN-style NAC introduces clear plane separation:
+This SDN-style introduces clear plane separation:
 - Northbound API (Flask): REST endpoints for the UI and integrations.
 - Control Plane (`backend/sdn/control_plane.py`): Validates devices, decides policy, and orchestrates southbound actions.
 - Southbound Driver (`backend/sdn/southbound.py`): Programs the data plane. Default implementation uses `iptables` on Linux and a safe mock on Windows or when `iptables` is unavailable.
@@ -34,7 +34,7 @@ It integrates simulated 802.1X concepts, RADIUS-like validation, dynamic VLAN as
 ### Skills Utilized
 - **Authentication**: 802.1X, RADIUS
 - **Networking**: VLAN configuration, `iptables`, ARP
-- **Back-End Development**: Flask, Mongodb
+- **Back-End Development**: Flask,sqlite
 - **Front-End Development**: React, Material-UI
 - **Scripting**: Python, Bash
 
@@ -46,9 +46,7 @@ It integrates simulated 802.1X concepts, RADIUS-like validation, dynamic VLAN as
 - **Flask**: RESTful API and server-side logic.
 - **React.js**: Dynamic and responsive front-end interface.
 - **Node.js**: JavaScript runtime for front-end development.
-- **MongoDB**: Primary database for device storage and VLAN profiles.
-- **Wireshark/tcpdump**: Optional tools for network traffic analysis.
-
+- **sqlite3**: Primary database for device storage and VLAN profiles.
 ---
 
 ## Use Cases
