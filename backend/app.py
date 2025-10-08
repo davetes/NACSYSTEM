@@ -14,6 +14,7 @@ from models.database import get_db_connection, init_db, seed_db
 from werkzeug.utils import secure_filename
 from sdn.control_plane import control
 from models.policy import list_policies, upsert_policy, delete_policy
+from utils.acl import validate_acls
 
 load_dotenv()
 app = Flask(__name__)
@@ -454,6 +455,15 @@ def get_devices():
         cur = conn.cursor()
         cur.execute("SELECT mac, username, authorized, vlan FROM devices")
         rows = [dict(r) for r in cur.fetchall()]
+        # Filter out invalid/blank MAC rows to avoid ghost entries in the UI
+        valid = []
+        mac_hyphen_re = re.compile(r"^[0-9A-F]{2}(-[0-9A-F]{2}){5}$")
+        mac_colon_re = re.compile(r"^[0-9A-F]{2}(:[0-9A-F]{2}){5}$")
+        for r in rows:
+            mac_val = (r.get('mac') or '').strip().upper()
+            if mac_val and (mac_hyphen_re.match(mac_val) or mac_colon_re.match(mac_val)):
+                valid.append(r)
+        rows = valid
         # normalize authorized int to bool for JSON
         for r in rows:
             r['authorized'] = bool(r.get('authorized', 0))
@@ -541,6 +551,73 @@ def sdn_upsert_policy():
 def sdn_delete_policy(name):
     deleted = delete_policy(name)
     return jsonify({'deleted': deleted})
+
+# --- ACL validation and apply ---
+@app.route('/sdn/validate/acls', methods=['POST'])
+def sdn_validate_acls():
+    items = request.json or []
+    result = validate_acls(items)
+    # Do not return normalized rules to the UI unless needed; include for visibility
+    return jsonify({ 'ok': result.get('ok'), 'issues': result.get('issues'), 'rules': result.get('rules') })
+
+@app.route('/sdn/apply/acls', methods=['POST'])
+def sdn_apply_acls():
+    items = request.json or []
+    result = validate_acls(items)
+    if not result.get('ok'):
+        return jsonify({ 'ok': False, 'issues': result.get('issues') }), 400
+    # Clear then apply
+    try:
+        from sdn.southbound import nbi
+        nbi.quarantine_mac  # touch to ensure import
+    except Exception:
+        pass
+    from sdn.southbound import nbi
+    nbi._driver and getattr(nbi._driver, 'clear_acls', lambda: True)()
+    applied = nbi._driver and getattr(nbi._driver, 'apply_acls', lambda _rules: True)(result.get('rules') or [])
+    return jsonify({ 'ok': bool(applied), 'applied': len(result.get('rules') or []) })
+
+# --- Maintenance: purge invalid device rows (blank/invalid MAC values) ---
+@app.route('/devices/purge-invalid', methods=['POST'])
+def purge_invalid_devices():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        # Delete rows where mac is NULL/empty or not matching common MAC formats
+        cur.execute(
+            "DELETE FROM devices WHERE mac IS NULL OR TRIM(mac) = ''"
+        )
+        # Best-effort: also remove obviously malformed lengths
+        cur.execute(
+            "DELETE FROM devices WHERE LENGTH(REPLACE(REPLACE(REPLACE(mac,'-',''),':',''),'.','')) NOT IN (12)"
+        )
+        # Normalize remaining colon-upper MACs to hyphen-upper; deduplicate conflicts preferring hyphen form
+        cur.execute("SELECT mac, username, authorized, vlan FROM devices")
+        rows = cur.fetchall() or []
+        seen = {}
+        for r in rows:
+            raw = (r['mac'] or '').strip().upper()
+            compact = raw.replace('-', '').replace(':', '').replace('.', '')
+            if len(compact) != 12:
+                continue
+            hyphen = '-'.join([compact[i:i+2] for i in range(0,12,2)])
+            if raw != hyphen:
+                # move to hyphen form if not already existing
+                if hyphen in seen:
+                    # conflict: delete current row
+                    cur.execute("DELETE FROM devices WHERE mac = ?", (raw,))
+                else:
+                    # update to canonical form
+                    cur.execute("UPDATE devices SET mac = ? WHERE mac = ?", (hyphen, raw))
+                    seen[hyphen] = True
+            else:
+                seen[hyphen] = True
+        conn.commit()
+        return jsonify({'message': 'Invalid device rows purged'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/logs', methods=['GET'])
 def get_logs():
@@ -668,13 +745,27 @@ def add_device():
         vlan_int = int(vlan)
     except Exception:
         return jsonify({'error': 'vlan must be integer'}), 400
+    # Normalize MAC into DB canonical hyphen-upper format; also accept colon/period/dash or bare formats
+    try:
+        raw = (mac or '').strip()
+        raw = raw.replace('.', '').replace(':', '').replace('-', '')
+        if len(raw) != 12:
+            return jsonify({'error': 'invalid MAC'}), 400
+        mac_norm = '-'.join([raw[i:i+2] for i in range(0, 12, 2)]).upper()
+    except Exception:
+        return jsonify({'error': 'invalid MAC'}), 400
     conn = get_db_connection()
     try:
         cur = conn.cursor()
+        # Prevent duplicates across different MAC text formats by pre-checking
+        mac_colon = mac_norm.replace('-', ':')
+        cur.execute("SELECT 1 FROM devices WHERE mac IN (?, ?)", (mac_norm, mac_colon))
+        if cur.fetchone():
+            return jsonify({'error': 'MAC address already exists'}), 409
         # authorized defaults to 1 on create
         cur.execute(
             "INSERT INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)",
-            (mac, username, 1, vlan_int),
+            (mac_norm, username, 1, vlan_int),
         )
         conn.commit()
         return jsonify({'message': 'Device added successfully'})
@@ -688,12 +779,25 @@ def add_device():
 
 @app.route('/devices/<mac>', methods=['DELETE'])
 def delete_device(mac):
+    # Normalize user-supplied MAC to DB canonical format and try both forms
     try:
+        raw = (mac or '').strip()
+        raw_compact = raw.replace('.', '').replace(':', '').replace('-', '')
+        if len(raw_compact) == 12 and all(c in '0123456789abcdefABCDEF' for c in raw_compact):
+            mac_hyphen = '-'.join([raw_compact[i:i+2] for i in range(0, 12, 2)]).upper()
+            mac_colon = mac_hyphen.replace('-', ':')
+            candidates = (mac_hyphen, mac_colon)
+        else:
+            # Fallback: also try raw as-is
+            candidates = (raw,)
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("DELETE FROM devices WHERE mac = ?", (mac,))
+        # Attempt delete against common stored variants
+        cur.execute("DELETE FROM devices WHERE mac IN ({})".format(','.join('?' for _ in candidates)), tuple(candidates))
         conn.commit()
-        return jsonify({'message': 'Device deleted successfully'})
+        if cur.rowcount and cur.rowcount > 0:
+            return jsonify({'message': 'Device deleted successfully'})
+        return jsonify({'error': 'MAC not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

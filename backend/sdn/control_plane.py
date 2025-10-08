@@ -18,7 +18,12 @@ class SDNControlPlane:
             cur.execute("SELECT mac, username, authorized, vlan FROM devices WHERE mac = ?", (mac_hyphen_upper,))
             row = cur.fetchone()
             if not row:
-                return None
+                # Fallback: some inserts may have stored colon-upper format; try that too
+                mac_colon_upper = mac_hyphen_upper.replace("-", ":")
+                cur.execute("SELECT mac, username, authorized, vlan FROM devices WHERE mac = ?", (mac_colon_upper,))
+                row = cur.fetchone()
+                if not row:
+                    return None
             return {
                 "mac": row["mac"],
                 "username": row["username"],
@@ -47,6 +52,29 @@ class SDNControlPlane:
 
         device = self._get_device_by_mac(mac_hyphen_upper)
         if not device:
+            # Device not pre-registered: try policy-based authorization using MAC prefix or default policy.
+            vlan_policy = find_vlan_for_device(None, mac_hyphen_upper)
+            if vlan_policy is not None:
+                # Program network to allow on derived VLAN and persist a device record for future lookups
+                nbi.permit_mac_on_vlan(mac_colon_lower, vlan_policy)
+                try:
+                    conn = get_db_connection()
+                    cur = conn.cursor()
+                    cur.execute(
+                        "INSERT OR REPLACE INTO devices (mac, username, authorized, vlan) VALUES (?, ?, ?, ?)",
+                        (mac_hyphen_upper, None, 1, int(vlan_policy)),
+                    )
+                    conn.commit()
+                finally:
+                    conn.close()
+                log(f"control_plane: policy_allow mac={mac_colon_lower} vlan={vlan_policy} (no prior device)")
+                return {
+                    "mac": mac_hyphen_upper,
+                    "username": None,
+                    "authorized": True,
+                    "vlan": vlan_policy,
+                }
+            # No matching policy: quarantine
             nbi.quarantine_mac(mac_colon_lower)
             log(f"control_plane: not_found mac={mac_colon_lower} -> blocked")
             return {
@@ -67,10 +95,32 @@ class SDNControlPlane:
         authorized = vlan is not None
 
         if authorized:
+            # Program data plane and persist the resolved VLAN/authorization.
             nbi.permit_mac_on_vlan(mac_colon_lower, vlan)
+            try:
+                conn = get_db_connection()
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE devices SET authorized = ?, vlan = ? WHERE mac = ?",
+                    (1, int(vlan), mac_hyphen_upper),
+                )
+                conn.commit()
+            finally:
+                conn.close()
             log(f"control_plane: allowed mac={mac_colon_lower} vlan={vlan}")
         else:
+            # Quarantine and persist blocked state
             nbi.quarantine_mac(mac_colon_lower)
+            try:
+                conn = get_db_connection()
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE devices SET authorized = ?, vlan = NULL WHERE mac = ?",
+                    (0, mac_hyphen_upper),
+                )
+                conn.commit()
+            finally:
+                conn.close()
             log(f"control_plane: no_vlan mac={mac_colon_lower} -> blocked")
 
         return {

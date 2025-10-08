@@ -53,6 +53,28 @@ class SDNSouthboundDriver(SouthboundDriver):
         log(f"southbound: allow mac={mac_colon_lower} vlan={vlan_id} (noop)")
         return True
 
+    # --- ACL management (mock) ---
+    def clear_acls(self) -> bool:
+        """Clear existing ACL rules (mock)."""
+        if self.mock_mode:
+            log("southbound-mock: clear ACLs (noop)")
+            return True
+        # In a real system, remove from chains or replace tables; keep noop for now
+        log("southbound: clear ACLs (noop)")
+        return True
+
+    def apply_acls(self, rules: list) -> bool:
+        """Apply ACL rules (mock). Accepts normalized rules from validator."""
+        if self.mock_mode:
+            for r in rules:
+                desc = f" {r.get('description')}" if r.get('description') else ''
+                log(f"southbound-mock: ACL {r['action']} {r['protocol']} {r['src']} {r['dst']} eq {r['port']}{desc}")
+            return True
+        # Real implementation would translate into device commands
+        for r in rules:
+            log(f"southbound: ACL {r['action']} {r['protocol']} {r['src']} {r['dst']} port {r['port']} (noop)")
+        return True
+
 # Provide a module-level singleton for convenience
 driver = SDNSouthboundDriver()
 

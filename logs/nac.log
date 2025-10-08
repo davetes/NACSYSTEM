@@ -15,3 +15,77 @@
 2025-09-30 10:34:27.230918 - control_plane: not_found mac=aa:bb:cc:dd:ee:ff -> blocked
 
 
+2025-10-08 15:56:59.792164 - nbi: quarantine mac=aa:bb:cc:dd:ef:ff
+2025-10-08 15:56:59.796812 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 15:56:59.797925 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 15:56:59.799024 - control_plane: not_found mac=aa:bb:cc:dd:ef:ff -> blocked
+2025-10-08 16:01:32.586151 - nbi: quarantine mac=aa:bb:cc:dd:ef:ff
+2025-10-08 16:01:32.587339 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:01:32.588656 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:01:32.592041 - control_plane: not_found mac=aa:bb:cc:dd:ef:ff -> blocked
+2025-10-08 16:01:35.558582 - nbi: quarantine mac=aa:bb:cc:dd:ef:ff
+2025-10-08 16:01:35.560046 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:01:35.561988 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:01:35.568368 - control_plane: not_found mac=aa:bb:cc:dd:ef:ff -> blocked
+2025-10-08 16:02:13.044733 - nbi: quarantine mac=aa:bb:cc:dd:ef:ff
+2025-10-08 16:02:13.046054 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:02:13.049163 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:02:13.050766 - control_plane: not_found mac=aa:bb:cc:dd:ef:ff -> blocked
+2025-10-08 16:03:02.890536 - nbi: quarantine mac=aa:bb:cc:dd:ef:ff
+2025-10-08 16:03:02.891832 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:03:02.892868 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:ff -j DROP
+2025-10-08 16:03:02.893857 - control_plane: not_found mac=aa:bb:cc:dd:ef:ff -> blocked
+2025-10-08 16:09:59.520932 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:09:59.522891 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:09:59.524175 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:10:15.756200 - nbi: quarantine mac=aa:bb:cc:dd:ef:f2
+2025-10-08 16:10:15.757606 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:f2 -j DROP
+2025-10-08 16:10:15.759024 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:f2 -j DROP
+2025-10-08 16:10:15.760147 - control_plane: not_found mac=aa:bb:cc:dd:ef:f2 -> blocked
+2025-10-08 16:10:23.989676 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:10:23.992179 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:10:24.005075 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:10:29.986326 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:10:29.989017 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:10:29.990763 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:10:38.430665 - nbi: quarantine mac=aa:bb:cc:dd:ef:f2
+2025-10-08 16:10:38.440553 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:f2 -j DROP
+2025-10-08 16:10:38.442452 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:f2 -j DROP
+2025-10-08 16:10:38.444255 - control_plane: not_found mac=aa:bb:cc:dd:ef:f2 -> blocked
+2025-10-08 16:10:41.747770 - nbi: quarantine mac=aa:bb:cc:dd:ef:f2
+2025-10-08 16:10:41.748767 - southbound-mock: would run cmd=iptables -A INPUT -m mac --mac-source aa:bb:cc:dd:ef:f2 -j DROP
+2025-10-08 16:10:41.749892 - southbound-mock: would run cmd=iptables -A FORWARD -m mac --mac-source aa:bb:cc:dd:ef:f2 -j DROP
+2025-10-08 16:10:41.751093 - control_plane: not_found mac=aa:bb:cc:dd:ef:f2 -> blocked
+2025-10-08 16:10:50.726344 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:10:50.728304 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:10:50.730312 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:28.735868 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:28.737268 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:14:28.741537 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:32.676756 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:32.678031 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:14:32.680062 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:34.064214 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:34.071758 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:14:34.076572 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:35.005240 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:35.006585 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:14:35.009305 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:37.944274 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:37.946188 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:14:37.952707 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:38.928164 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:14:38.929260 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:14:38.933123 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:25:59.294657 - southbound-mock: clear ACLs (noop)
+2025-10-08 16:25:59.296434 - southbound-mock: ACL deny tcp any any eq 23 Block telnet
+2025-10-08 16:26:10.776212 - southbound-mock: clear ACLs (noop)
+2025-10-08 16:26:10.779465 - southbound-mock: ACL deny tcp any any eq 23 Block telnet
+2025-10-08 16:26:40.059911 - southbound-mock: clear ACLs (noop)
+2025-10-08 16:26:40.061155 - southbound-mock: ACL deny tcp any any eq 23 Block telnet
+2025-10-08 16:27:19.137873 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:27:19.139014 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:27:19.142816 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:27:22.063643 - nbi: permit mac=aa:bb:cc:dd:ef:ff vlan=10
+2025-10-08 16:27:22.065049 - southbound: allow mac=aa:bb:cc:dd:ef:ff vlan=10 (noop)
+2025-10-08 16:27:22.067987 - control_plane: allowed mac=aa:bb:cc:dd:ef:ff vlan=10

@@ -169,6 +169,28 @@ function SDNValidate() {
       />
       <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
         <Button variant="contained" onClick={() => handleValidateJSON(kind)}>Validate</Button>
+        {kind === 'acls' && (
+          <Button variant="outlined" color="secondary" onClick={async () => {
+            const [parsed, err] = safeParse(value);
+            if (err) {
+              setJsonMessage(`Invalid JSON: ${err}`);
+              setJsonSeverity('error');
+              setJsonResult({ ok: false });
+              return;
+            }
+            try {
+              const res = await api.post('/sdn/apply/acls', parsed);
+              setJsonResult(res.data || { ok: true });
+              setJsonMessage('ACLs applied');
+              setJsonSeverity('success');
+            } catch (e) {
+              const msg = e?.response?.data?.issues?.join(', ') || e?.response?.data?.error || 'Apply failed';
+              setJsonResult({ ok: false, error: msg });
+              setJsonMessage(`Apply failed: ${msg}`);
+              setJsonSeverity('error');
+            }
+          }}>Apply</Button>
+        )}
       </Stack>
       {jsonMessage && <Alert sx={{ mt: 2 }} severity={jsonSeverity}>{jsonMessage}</Alert>}
       {jsonResult && (

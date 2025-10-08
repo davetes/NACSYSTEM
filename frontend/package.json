@@ -19,7 +19,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "dev": "nodemon index.js",
+    "dev": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -45,7 +45,6 @@
   },
   "proxy": "http://localhost:5000",
   "description": "An SDN dashboard for centralized control, intents, flows, topology, and health monitoring.",
-  "main": "index.js",
   "keywords": [],
   "author": "",
   "license": "ISC"
